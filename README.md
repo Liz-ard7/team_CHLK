@@ -14,13 +14,13 @@ Fun Fact: Owns ![Ebenezer Scrooge Nightgown](image.png)
 
 ### Kelly Hong
 
-Course Number
+Course Number: 6-3
 
-Year
+Year: 2026 (Senior)
 
-Link to portfolio
+[Link to portfolio](https://www.linkedin.com/in/kellyhong612/)
 
-Description
+Fun Fact: 
 
 ### Hao Lei Zhang
 
