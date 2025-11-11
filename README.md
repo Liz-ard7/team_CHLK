@@ -14,13 +14,13 @@ Fun Fact: Owns ![Ebenezer Scrooge Nightgown](image.png)
 
 ### Kelly Hong
 
-Course Number
+Course Number: 6-3
 
-Year
+Year: 2026 (Senior)
 
-Link to portfolio
+[Link to portfolio](https://www.linkedin.com/in/kellyhong612/)
 
-Description
+Fun Fact: I once got pranked by my brother with cupcakes where the frosting was mayonnaise, but I didn't notice and said they were yummy.
 
 ### Hao Lei Zhang
 
