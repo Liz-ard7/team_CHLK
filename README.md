@@ -20,7 +20,7 @@ Year: 2026 (Senior)
 
 [Link to portfolio](https://www.linkedin.com/in/kellyhong612/)
 
-Fun Fact: 
+Fun Fact: I once got pranked by my brother with cupcakes where the frosting was mayonnaise, but I didn't notice and said they were yummy.
 
 ### Hao Lei Zhang
 
