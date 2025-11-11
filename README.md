@@ -8,9 +8,9 @@ Course Number: 6-3
 
 Year: 2027 (Junior)
 
-Link to portfolio
+[Link to Portfolio](https://github.com/Liz-ard7/61040-portfolio)
 
-Description
+Fun Fact: Owns ![Ebenezer Scrooge Nightgown](image.png)
 
 ### Kelly Hong
 
