@@ -10,7 +10,7 @@ Year: 2027 (Junior)
 
 [Link to Portfolio](https://github.com/Liz-ard7/61040-portfolio)
 
-Fun Fact: Owns ![Ebenezer Scrooge Nightgown](image.png)
+Fun Fact: Owns Ebenezer Scrooge Nightgown ![Ebenezer Scrooge Nightgown](image.png)
 
 ### Kelly Hong
 
