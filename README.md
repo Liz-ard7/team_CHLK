@@ -10,7 +10,7 @@ Year: 2027 (Junior)
 
 [Link to Portfolio](https://github.com/Liz-ard7/61040-portfolio)
 
-Fun Fact: Owns Ebenezer Scrooge Nightgown ![Ebenezer Scrooge Nightgown](image.png)
+Fun Fact: Owns Ebenezer Scrooge Nightgown <img src="lizzy_fun_fact.png" alt="Ebenezer Scrooge Nightgown" style="width:50%; height:auto;">
 
 ### Kelly Hong
 
@@ -42,6 +42,6 @@ Link to portfolio
 
 Description
 
-## Problem Framing
-
-[Problem Framing Assignment](ProblemFraming.md)
+## Functional Design
+* [Problem Framing](functional_design/ProblemFraming.md)
+* [Visual Design Study](functional_design/VisualStudy.md)
