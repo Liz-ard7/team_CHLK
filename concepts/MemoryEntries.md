@@ -34,6 +34,15 @@ Record and organize shared memories within a group, allowing members to collecti
 * Requires: memory and user to exist, user is within the group that the memory is in
 * Effects: update the textual memory content of the user for the particular memory
 
+#### addContribution(memory: Memory, user, description: String): (contribution)
+* Requires: user to be a member of the group associated with memory
+* Effects: add a new contribution with the User user, empty set of imageUrls, and description as description. Add this contribution to the memory’s set of contributions.
+
+#### deleteContribution(contribution, user, memory)
+* Requires: the contribution exists within the memory’s set of contributions. The contribution is associated with the user.
+* Effects: remove contribution from the set of contributions
+
+
 #### addImage(user: User, contribution: Contribution, imageUrl: String)
 * Requires: user and contribution to exist, user is associated with the given contribution, imageUrl corresponds to an existing image
 * Effects: Adds image to the set of images within the contribution
@@ -45,3 +54,12 @@ Record and organize shared memories within a group, allowing members to collecti
 #### deleteMemory (memory: Memory, creator: User)
 * Requires: a memory created by user-self exists
 * Effects: removes the entire memory from the group, removes all contributions associated with that memory
+
+### queries
+#### _getMemory (memoryID: String): (memory: Memory)
+* Requires: memoryID exists, and the requesting user (if any) is a member of the associated group (implied security context, possibly via syncs).
+* Effects: Returns the full memory object.
+#### _listMemoriesForGroup (groupID: String): (memories: Set<Memory>)
+* Requires: `groupID` exists, and the requesting user is a member of `groupID`.
+* Effects: Returns a set of memory objects for the specified group.
+
