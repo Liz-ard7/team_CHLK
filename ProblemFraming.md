@@ -36,10 +36,8 @@ Remembering memories can be difficult, as the brain can warp memories and even f
 
 1. **Profiles that List Memories**: Under each person's (character) profile, storytellers can add a memorable story that includes the character. Of course, only if the character approves of it, as to prevent bullying. This helps storytellers remember their most memorable moments and reminds characters of those fun times too! Listeners can view these stories and get a sense of what the characters involved in the story were really like, bolstering a sense of connectedness. If a memory has multiple people, you can tag those people as well. People can also respond and add details left out.
 2. **Chronological Timeline**: When viewing a person's profile, you would see all the memories people added to their profile in chronological order. This helps remind the storyteller and characters when exactly these memories took place, how old they were, what stage of their life, etc. This also puts it into perspective for the listener. For instance, the listener could see fond memories of what their parent was doing at the listener's age.
-3. **Memory Prompts/Questions**: If a storyteller doesn't really know what to add, but still wants to add something to a character's board/profile, there will be prompts such as "What was their favorite color?", "What was their sense of humor like?", etc. This helps start the storyteller to think carefully about what the character was like, giving a bigger glimpse of the character's personality to the listener.
-4. **Collections of memories**: People may want to group memories in different ways depending on who is involved in the memories or who they want the memories to be visible to. Having collections of memories could allow users to organize their memories and specify who else should have access to view or edit these memory collections.
-5. **Tagging others (“@” feature) to connect shared experiences.**: Similar to the feature above, tagging others is another way to make a memory visible to the relevant people.
-6. **AI assistant**: To align, polish, and merge stories from multiple people. This can be something similar to Spotify’s annual “Spotify Unwrapped” that people are often looking forward to. It would be a good way for people to reflect back on their year/month/whatever time duration we choose without having to go through everything manually.
+3. **Collections of memories**: People may want to group memories in different ways depending on who is involved in the memories or who they want the memories to be visible to. Having collections of memories could allow users to organize their memories and specify who else should have access to view or edit these memory collections.
+4. **AI assistant**: To align, polish, and merge stories from multiple people. This can be something similar to Spotify’s annual “Spotify Unwrapped” that people are often looking forward to. It would be a good way for people to reflect back on their year/month/whatever time duration we choose without having to go through everything manually.
 
 ## Ethical Analysis
 
@@ -49,7 +47,6 @@ Remembering memories can be difficult, as the brain can warp memories and even f
 
 **Observation**: Primary stakeholders include individuals recording memories (users), co-participants tagged in shared stories, and long-term family or community members who access them later. Secondary stakeholders include data storage providers and potential third-party developers.
 
-
 **Design Response**: Implement clear consent mechanisms before sharing or tagging others in memories, and provide visibility controls (who can see/edit each memory).
 
 ### Time
@@ -57,7 +54,6 @@ Remembering memories can be difficult, as the brain can warp memories and even f
 #### 2. Long-Term Health and Well-Being
 
 **Observation**: In the short term, users may experience nostalgia and joy from revisiting memories. In the medium term, potential emotional risks arise (e.g., re-triggering grief). In the long term, how can users deal with these memories if their relationship breakup? (no longer connected or somebody died)
-
 
 **Design Response**: Add legacy and archival features that let users choose what happens to their memories posthumously, and include emotional support prompts or opt-outs for sensitive content.
 
