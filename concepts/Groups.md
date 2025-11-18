@@ -1,21 +1,21 @@
 ## Groups
 
 ### Purpose
-To provide a collaborative space where users can form groups, manage membership, and participate in shared memory creation
+To provide a collaborative space where users can form groups and manage membership
 
 ### Principle
 * Users can create groups, invite friends to join, and manage group membership collectively.
-* Each group maintains a name and a list of members, allowing users to collaborate on shared content such as memory boards.
+* Each group maintains a name and a list of members, allowing users to collaborate on shared content
 * Invitations ensure that group membership is controlled and consensual.
 * Only group members can edit group details or participate in group activities, and users can choose to leave a group at any time.
-* Deleting any group member should be democratic
+* Deleting any group member follows a democratic process
 
 ### State
 * A set of Groups with
     * A group ID String
     * A group Name String
     * A set of members Users
-    *  A set of invitedMembers Users
+    * A set of invitedMembers Users
 * A set of RemovalVotes with
     * An associated group by ID String
     * A flagged user User
@@ -25,23 +25,23 @@ To provide a collaborative space where users can form groups, manage membership,
 ### Actions
 #### createGroup(user: User, name: String): (group: Group)
 * Requires: user to exist
-* Effects: creates a new group with the user as a member of the group, the parameter name, and a randomly generated unique ID
+* Effects: creates a new group with the user as a member of the group and a randomly generated unique ID. If name is empty, changes group name to be a list of the member names separated by comma. Otherwise, changes group name to be the parameter name.
 
 #### editGroupName(user: User, group: Group, new_name: String)
 * Requires: user and group to exist, user to be a member within the group
 * Effects: if new_name is empty, changes group name to be a list of the member names separated by comma. Otherwise, changes group name to be the parameter name.
 
 #### inviteMember(user: User, group: Group, userToInvite: User)
-* Requires: user + userToAdd + group to all exist, user to exist in the group, userToInvite to not already be within the group
+* Requires: user + userToAdd + group to all exist, user to exist in the group, userToInvite to not already be a member or invited member of the group
 * Effects: sends an invitation to the group to userToInvite
 
 #### acceptInvitation(user: User, group: Group)
-* Requires: User and group exist, User has been invited to group
-* Effects: User is added to group
+* Requires: user and group to exist, user has been invited to group
+* Effects: user is removed from list of invited members of the group, user is added to group as a member
 
 #### declineInvitation(user: User, group: Group)
 * Requires: user and group to exist, user has been invited to group
-* Effects: user is not added to group, invitation becomes void
+* Effects: user is removed from list of invited members of the group
 
 #### leaveGroup(user: User, group: Group)
 * Requires: user and group to exist, user to be a member of the group
@@ -55,10 +55,14 @@ To provide a collaborative space where users can form groups, manage membership,
 * Requires: user + group + flagged_user all exist, user and flagged_user are distinct, user and flagged_user are both in the group, removal vote exists for the flagged_user
 * Effects: list the user in the set of proponents for the vote. If the size of the set of proponents is at least 51% of the size of the total group, remove flagged_user (listed in vote) from the group and delete the vote.
 
+#### rescindVote(user: User, vote: RemovalVote)
+* Requires: user and vote to exist, user to be in list of proponents under the vote
+* Effects: removes the user from the list of proponents of the vote
+
 #### voteExpire(vote: RemovalVote)
 * Requires: vote to exist, current time is at least 24 hours after the start date of the vote
-* Effects: removes the vote from the list of RemovalVotes of the group
+* Effects: deletes the vote
 
 #### deleteGroup(group: Group)
-* Requires: group to exist. Requires Group to have no more members and no invited members.
+* Requires: group to exist. Requires group to have no more members and no invited members.
 * Effects: removes the group from set of Groups

@@ -17,7 +17,7 @@ after a user registers with a username and a password, they can authenticate wit
 ### Actions
 #### register (username: String, password: String): (user: User)
 * Requires: username to not already exist in the set of Users
-* Effects:  creates a new user of that username and password + with a randomly generated unique user ID, adds that user to the set of users, and returns the new user
+* Effects: creates a new user of that username and password + with a randomly generated unique user ID. Profile photo and bio of the new user are blank. Adds that user to the set of users, and returns the new user
 
 #### authenticate (username: String, password: String): (user: User)
 * Requires: user of the argument username and password to exist in the set of Users
