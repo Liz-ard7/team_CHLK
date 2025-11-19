@@ -99,11 +99,11 @@
 #### sync AuthorizeEditMyContributionDescription
 
 * when
-	* Request.editDescription(user, memory, newDescription)
+	* Request.editContribution(user, contribution, memory, newDescription)
 * where
 	* in MemoryEntries: memory_M exists and memory_M ID is memory AND contribution_C exists in memory_M's set of contributions AND user of contribution_C is user
 * then
-	* MemoryEntries.editDescription(memory, user, newDescription)
+	* MemoryEntries.editContribution(contribution, memory, user, newDescription)
 
 
 #### sync AuthorizeAddContributionAsGroupMember
@@ -163,15 +163,15 @@
 	* ImageStorage.confirmUpload(user, object) : (file, url)
 	* Request.request(path: "/memory-images/upload-url", user, memory, filename, contentType) : (req_id) // Match the initial request
 * then
-	* MemoryEntries.addImage(memory, user, imageUrl: url)
+	* MemoryEntries.addImage(memory, user, contribution, imageUrl: url)
 	* Request.respond(request: req_id, status: "success", imageUrl: url)
 
 
 #### sync AuthorizeDeleteImageFromMemory
 
 * when
-	* Request.deleteImage(user, memory, imageUrl)
+	* Request.deleteImage(user, memory, contribution, imageUrl)
 * where
 	* in MemoryEntries: memory_M exists and memory_M ID is memory AND contribution_C exists in memory_M's set of contributions AND user of contribution_C is user AND contribution_C's imageUrls contains imageUrl
 * then
-	* MemoryEntries.deleteImage(memory, user, imageUrl)
+	* MemoryEntries.deleteImage(memory, user, contribution, imageUrl)
