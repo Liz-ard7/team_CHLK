@@ -66,3 +66,17 @@ To provide a collaborative space where users can form groups and manage membersh
 #### deleteGroup(group: Group)
 * Requires: group to exist. Requires group to have no more members and no invited members.
 * Effects: removes the group from set of Groups
+
+### queries
+
+#### _getGroupDetails (groupID: String): (groupName: String, members: Set<User>, invitedMembers: Set<User>)
+
+* Requires: group associated with groupID exists.
+
+* Effects: Returns the details of the specified group.
+
+#### _listGroupsForUser (user: User): (groups: Set<Group>)
+
+* Requires: user exists.
+
+* Effects: Returns a set of groups that the user is a member of.
