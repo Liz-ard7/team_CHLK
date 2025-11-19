@@ -47,9 +47,7 @@ Description
 ## Functional Design
 * [Problem Framing](functional_design/ProblemFraming.md)
 * [Folder of Concepts](concepts)
-* [syncDesigns](functional_design/syncDesigns.md)
-* User Journey
+* [Sync Designs](functional_design/syncDesigns.md)
 * [UI Sketches](functional_design/UI_Sketches.pdf)
 * [Visual Design Study](functional_design/VisualStudy.md)
-* Design Summary
 * [Development Plan](functional_design/DevelopmentPlan.md)
