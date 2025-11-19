@@ -28,7 +28,7 @@
 
 ## Frontend Alpha
 | Page: | Assigned To | Deadline |
-|:--------|:-----:|:-----:|------:|
+|:--------|:-----:|------:|
 | ALPHA: Focus on just creating the page, not on visuals or on making buttons actually do things |
 | (Creating Vue application) | Lizzy | Nov 25 |
 | Homepage | Lizzy | Nov 25 |
@@ -43,7 +43,7 @@
 
 ## Frontend Beta
 | Page: | Assigned To | Deadline |
-|:--------|:-----:|:-----:|------:|
+|:--------|:-----:|------:|
 | BETA: adding functionality to buttons |
 | Homepage | Calvin | Dec 2 |
 | Register/Login | Calvin | Dec 2 |
