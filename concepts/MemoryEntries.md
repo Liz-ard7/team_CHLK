@@ -8,6 +8,7 @@ Record and organize shared memories within a group, allowing members to collecti
 * Members can create a new memory entry, edit its title or description, and add or remove images to reflect shared experiences
 * A memory can be viewed by all group members. Group members can edit the title of the memory and add their own individual descriptions (textual and visual). Only the creator of the memory can delete the memory.
 * This design ensures that each memory grows through collective input while maintaining clear ownership and editing control
+* Each memory has a creator, and group members can add their own contributions (descriptions and images). Users can edit or delete their own contributions.
 
 ### State
 * A set of Memories with
@@ -15,11 +16,11 @@ Record and organize shared memories within a group, allowing members to collecti
     * A group (given as ID)
     * A creator User
     * A title String
-* A set of Contributions with
-    * An associated memory ID String
-    * A set of imageUrls String
-    * A description String
-    * An associated user User
+    * A set of Contributions with
+        * An associated memory ID String
+        * A set of imageUrls String
+        * A description String
+        * An associated user User
 
 ### Actions
 #### createMemory (creator: User, group: String, title: String): (memory: Memory)
@@ -62,4 +63,3 @@ Record and organize shared memories within a group, allowing members to collecti
 #### _listMemoriesForGroup (groupID: String): (memories: Set<Memory>)
 * Requires: `groupID` exists, and the requesting user is a member of `groupID`.
 * Effects: Returns a set of memory objects for the specified group.
-
