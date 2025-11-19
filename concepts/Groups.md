@@ -47,22 +47,6 @@ To provide a collaborative space where users can form groups and manage membersh
 * Requires: user and group to exist, user to be a member of the group
 * Effects: removes user from the list of members of the group
 
-#### proposeRemoval(user: User, group: Group, flagged_user: User): (vote: RemovalVote)
-* Requires: user + group + flagged_user all exist, user and flagged_user are distinct, user and flagged_user are both in the group, removal vote does not already exist for the flagged_user
-* Effects: create a removal vote on the flagged_user with an empty set of proponents and the current time marked in the timestamp
-
-#### voteRemoval(user: User, vote: RemovalVote)
-* Requires: user + group + flagged_user all exist, user and flagged_user are distinct, user and flagged_user are both in the group, removal vote exists for the flagged_user
-* Effects: list the user in the set of proponents for the vote. If the size of the set of proponents is at least 51% of the size of the total group, remove flagged_user (listed in vote) from the group and delete the vote.
-
-#### rescindVote(user: User, vote: RemovalVote)
-* Requires: user and vote to exist, user to be in list of proponents under the vote
-* Effects: removes the user from the list of proponents of the vote
-
-#### voteExpire(vote: RemovalVote)
-* Requires: vote to exist, current time is at least 24 hours after the start date of the vote
-* Effects: deletes the vote
-
 #### deleteGroup(group: Group)
 * Requires: group to exist. Requires group to have no more members and no invited members.
 * Effects: removes the group from set of Groups
