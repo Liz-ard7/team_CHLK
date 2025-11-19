@@ -17,7 +17,6 @@ Record and organize shared memories within a group, allowing members to collecti
     * A creator User
     * A title String
     * A set of Contributions with
-        * An associated memory ID String
         * A set of imageUrls String
         * A description String
         * An associated user User
@@ -25,41 +24,43 @@ Record and organize shared memories within a group, allowing members to collecti
 ### Actions
 #### createMemory (creator: User, group: String, title: String): (memory: Memory)
 * Requires: the creator and group to exist, creator is a member of the group, title is non-empty
-* Effects: create a new memory record with the parameter title and a randomly generated ID linked to the group. Initialize a Contribution for each member within the group with an empty set of images and an empty description.
+* Effects: create a new memory record with the parameter title, and an empty set of contributions, and a randomly generated ID linked to the group.
 
 #### editTitle(memory: Memory, user: User, newTitle: String)
 * Requires: user, memory, and group to exist. user is within the group that the memory is in. newTitle is non-empty
 * Effects: Changes the title of the memory with the given id to newTitle
 
-#### editDescription (memory: Memory, user: User, newDescription: String)
-* Requires: memory and user to exist, user is within the group that the memory is in
-* Effects: update the textual memory content of the user for the particular memory
+#### editContribution (contribution, memory, user, newDescription: String)
+* Requires: memory and user to exist, user is within the group that the memory is in, newDescription cannot be empty
+* Effects: update the contribution's description of the user for the particular memory to be newDescription
 
-#### addContribution(memory: Memory, user, description: String): (contribution)
-* Requires: user to be a member of the group associated with memory
-* Effects: add a new contribution with the User user, empty set of imageUrls, and description as description. Add this contribution to the memory’s set of contributions.
+#### addContribution(memory: Memory, user, description: String, imageUrls: String): (contribution)
+* Requires: user to be a member of the group associated with memory, description cannot be empty
+* Effects: add a new contribution with the User user, split the imageUrls string into a set of imageUrl strings, and description as description. Add this contribution to the memory’s set of contributions.
 
-#### deleteContribution(contribution, user, memory)
+#### deleteContribution(memory, contribution, user)
 * Requires: the contribution exists within the memory’s set of contributions. The contribution is associated with the user.
-* Effects: remove contribution from the set of contributions
+* Effects: remove contribution from memory's set of contributions
 
 
-#### addImage(user: User, contribution: Contribution, imageUrl: String)
-* Requires: user and contribution to exist, user is associated with the given contribution, imageUrl corresponds to an existing image
+#### addImage(user: User, memory: Memory, contribution: Contribution, imageUrl: String)
+* Requires: user and contribution to exist, user is associated with the given contribution in memory, imageUrl corresponds to an existing image.
 * Effects: Adds image to the set of images within the contribution
 
-#### deleteImage (user: User, contribution: Contribution, imageUrl: String)
+#### deleteImage (user: User, memory: Memory, contribution: Contribution, imageUrl: String)
 * Requires: user and contribution to exist, user is associated with the given contribution, contribution contains the parameter imageURL
-* Effects: removes image from user's contribution
+* Effects: removes image from memory's user's contribution
 
 #### deleteMemory (memory: Memory, creator: User)
 * Requires: a memory created by user-self exists
 * Effects: removes the entire memory from the group, removes all contributions associated with that memory
 
 ### queries
+
 #### _getMemory (memoryID: String): (memory: Memory)
 * Requires: memoryID exists, and the requesting user (if any) is a member of the associated group (implied security context, possibly via syncs).
 * Effects: Returns the full memory object.
+
 #### _listMemoriesForGroup (groupID: String): (memories: Set<Memory>)
 * Requires: `groupID` exists, and the requesting user is a member of `groupID`.
 * Effects: Returns a set of memory objects for the specified group.

@@ -10,7 +10,7 @@ Year: 2027 (Junior)
 
 [Link to Portfolio](https://github.com/Liz-ard7/61040-portfolio)
 
-Fun Fact: Owns Ebenezer Scrooge Nightgown 
+Fun Fact: Owns Ebenezer Scrooge Nightgown
 
 <img src="lizzy_fun_fact.png" alt="Ebenezer Scrooge Nightgown" style="width:30%; height:auto;">
 
@@ -47,6 +47,7 @@ Description
 ## Functional Design
 * [Problem Framing](functional_design/ProblemFraming.md)
 * [Folder of Concepts](concepts)
+* [syncDesigns](functional_design/syncDesigns.md)
 * User Journey
 * [UI Sketches](functional_design/UI_Sketches.pdf)
 * [Visual Design Study](functional_design/VisualStudy.md)
