@@ -23,14 +23,6 @@
 	* Groups.leaveGroup(user, group)
 
 
-#### sync RevokeRemovalVotesOnUserDeletion
-
-* when
-	* UserAuthentication.deleteUser(user)
-* where
-	* in Groups: user is in proponents of vote
-* then
-	* Groups.rescindVote(user, vote)
 
 ## Group Lifecycle
 
@@ -54,15 +46,6 @@
 * then
 	* MemoryEntries.deleteMemory(memory, creator)
 
-
-#### sync InvalidateVoteOnTargetUserLeave
-
-* when
-	* Groups.leaveGroup(user, group)
-* where
-	* in Groups: flagged user of vote is user AND associated group of vote is group
-* then
-	* Groups.voteExpire(vote)
 
 ## Authorization
 
