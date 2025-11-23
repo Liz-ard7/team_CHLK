@@ -16,11 +16,6 @@ To provide a collaborative space where users can form groups and manage membersh
     * A group Name String
     * A set of members Users
     * A set of invitedMembers Users
-* A set of RemovalVotes with
-    * An associated group by ID String
-    * A flagged user User
-    * A set of proponents Set<User>
-    * A start time Date
 
 ### Actions
 #### createGroup(user: User, name: String): (group: Group)
