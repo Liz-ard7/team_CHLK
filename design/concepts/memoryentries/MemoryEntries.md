@@ -1,4 +1,4 @@
-## MemoryEntries
+# MemoryEntries
 
 ### Purpose
 Record and organize shared memories within a group, allowing members to collectively contribute photos and descriptions that capture meaningful experiences
@@ -30,26 +30,25 @@ Record and organize shared memories within a group, allowing members to collecti
 * Requires: user, memory, and group to exist. user is within the group that the memory is in. newTitle is non-empty
 * Effects: Changes the title of the memory with the given id to newTitle
 
-#### editContribution (contribution, memory, user, newDescription: String)
-* Requires: memory and user to exist, user is within the group that the memory is in, newDescription cannot be empty
+#### editContribution (memory: Memory, user: User, newDescription: String)
+* Requires: memory and user to exist, user is within the group that the memory is in, newDescription cannot be empty, user has an existing contribution for this memory
 * Effects: update the contribution's description of the user for the particular memory to be newDescription
 
-#### addContribution(memory: Memory, user, description: String, imageUrls: String): (contribution)
+#### addContribution(memory: Memory, user: User, description: String, imageUrls: String)
 * Requires: user to be a member of the group associated with memory, description cannot be empty
-* Effects: add a new contribution with the User user, split the imageUrls string into a set of imageUrl strings, and description as description. Add this contribution to the memory’s set of contributions.
+* Effects: add a new contribution with the User user, split the imageUrls string (comma-separated) into a set of imageUrl strings, and description as description. Add this contribution to the memory's set of contributions. If the user already has a contribution for this memory, update the existing contribution instead.
 
-#### deleteContribution(memory, contribution, user)
-* Requires: the contribution exists within the memory’s set of contributions. The contribution is associated with the user.
-* Effects: remove contribution from memory's set of contributions
+#### deleteContribution(memory: Memory, user: User)
+* Requires: memory and user to exist, user has an existing contribution within the memory's set of contributions
+* Effects: remove the contribution associated with the user from memory's set of contributions
 
+#### addImage(user: User, memory: Memory, imageUrl: String)
+* Requires: user and memory to exist, user is associated with a contribution in memory, imageUrl corresponds to an existing image
+* Effects: Adds image to the set of images within the user's contribution for this memory
 
-#### addImage(user: User, memory: Memory, contribution: Contribution, imageUrl: String)
-* Requires: user and contribution to exist, user is associated with the given contribution in memory, imageUrl corresponds to an existing image.
-* Effects: Adds image to the set of images within the contribution
-
-#### deleteImage (user: User, memory: Memory, contribution: Contribution, imageUrl: String)
-* Requires: user and contribution to exist, user is associated with the given contribution, contribution contains the parameter imageURL
-* Effects: removes image from memory's user's contribution
+#### deleteImage (user: User, memory: Memory, imageUrl: String)
+* Requires: user and memory to exist, user is associated with a contribution in memory, the contribution contains the parameter imageUrl
+* Effects: removes image from the user's contribution for this memory
 
 #### deleteMemory (memory: Memory, creator: User)
 * Requires: a memory created by user-self exists
