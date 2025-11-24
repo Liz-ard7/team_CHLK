@@ -12,7 +12,7 @@
 | UserAuthentication | All (including queries)   | Lizzy    | Nov 23    |
 | MemoryEntries | Proofread concept   | Calvin    | Nov 25    |
 | Groups | Proofread concept   | Kelly    | Nov 25    |
-| ImageStorage | Proofread concept   | Lizzy    | Nov 235   |
+| ImageStorage | Proofread concept   | Lizzy    | Nov 25   |
 | UserAuthentication | Proofread concept   | Haolei    | Nov 25    |
 ## Backend Beta
 | Feature | Task | Assigned To | Deadline |
