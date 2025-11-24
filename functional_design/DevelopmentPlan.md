@@ -10,10 +10,10 @@
 | ImageStorage   | All (including queries)  | Kelly    | Nov 23    |
 | MemoryEntries | Memory/Contribution/Image Adding and Deleting   | Haolei    | Nov 23    |
 | UserAuthentication | All (including queries)   | Lizzy    | Nov 23    |
-| MemoryEntries | Proofread concept   | Calvin    | Nov 23    |
-| Groups | Proofread concept   | Kelly    | Nov 23    |
-| ImageStorage | Proofread concept   | Lizzy    | Nov 23    |
-| UserAuthentication | Proofread concept   | Haolei    | Nov 23    |
+| MemoryEntries | Proofread concept   | Calvin    | Nov 25    |
+| Groups | Proofread concept   | Kelly    | Nov 25    |
+| ImageStorage | Proofread concept   | Lizzy    | Nov 235   |
+| UserAuthentication | Proofread concept   | Haolei    | Nov 25    |
 ## Backend Beta
 | Feature | Task | Assigned To | Deadline |
 |:--------|:-----:|:-----:|------:|
