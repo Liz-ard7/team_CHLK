@@ -1,0 +1,154 @@
+[@implementing-concepts](../../background/implementing-concepts.md)
+
+[@concept-specifications](../../background/concept-specifications.md)
+
+[@UserAuthentication](UserAuthentication.md)
+
+# UserAuthentication Concept Implementation
+
+## Overview
+
+This document describes the implementation of the UserAuthentication concept, following the established patterns from the Groups and MemoryEntries concepts. The implementation includes all actions specified in the UserAuthentication specification, with necessary refinements for security and consistency.
+
+## Changes Made to Specification
+
+### 1. deleteUser Action Signature Change
+
+**Original Specification**: `deleteUser (user: User)`
+
+**Implementation**: `deleteUser (username: String, password: String): (user: User)`
+
+**Rationale**: The implementation requires username and password for deletion instead of just the user ID. This is a security improvement that ensures only the user themselves (or someone with their credentials) can delete the account. This prevents unauthorized deletion if a user ID is somehow exposed.
+
+### 2. Added Query: _userExists
+
+**Specification**: No queries were originally specified.
+
+**Implementation**: Added `_userExists (user: User): (exists: Boolean)` query.
+
+**Rationale**: This query is useful for other concepts (like Groups or MemoryEntries) to verify that a user exists before performing operations that require a valid user. It provides a way to check user existence without exposing sensitive information.
+
+### 3. Field Name Clarifications
+
+**Specification**: Referred to "profile photo URL String" and "A userID String"
+
+**Implementation**: Uses `url` field for profile photo and `_id` for user ID (standard MongoDB pattern).
+
+**Rationale**: The implementation follows MongoDB conventions where `_id` is the document identifier. The field name `url` is used internally, which is clearer and more concise than "profile photo URL".
+
+### 4. Input Validation Enhancements
+
+**Specification**: Basic requirements stated.
+
+**Implementation**: Added validation for:
+- Empty photo URLs in `changePhoto` (rejects empty strings)
+- Empty bios in `changeBio` (rejects empty strings)
+
+**Rationale**: These validations prevent invalid data from being stored and provide clearer error messages to users.
+
+## Implementation Details
+
+### State Structure
+
+The MongoDB document structure follows the specification:
+
+```typescript
+interface UserDoc {
+  _id: User;
+  username: string;
+  password: string;
+  url: string;  // profile photo URL
+  bio: string;
+}
+```
+
+### Key Implementation Decisions
+
+1. **Collection Prefix**: Uses `"UserAuthentication."` prefix for MongoDB collections, following the established pattern.
+
+2. **Password Storage**: Passwords are stored in plain text for this implementation. In a production system, passwords should be hashed using a secure hashing algorithm (e.g., bcrypt).
+
+3. **User ID Generation**: Uses `freshID()` from `@utils/database.ts` to generate unique user IDs (UUID v7).
+
+4. **Default Values**: New users are created with:
+   - `url`: `"team_CHLK/src/concepts/image.png"` (default profile photo)
+   - `bio`: `""` (empty string)
+
+5. **Error Handling**: All actions return `{ result } | { error: string }` and include comprehensive error checking.
+
+6. **Query Return Format**: The `_userExists` query returns `{ exists: boolean }` rather than an array, which is appropriate for a boolean query result.
+
+### Actions Implemented
+
+1. **`register`** - Creates new user with username and password, returns user ID
+2. **`authenticate`** - Verifies username/password and returns user ID
+3. **`deleteUser`** - Deletes user after verifying credentials (security enhancement)
+4. **`changePhoto`** - Updates user's profile photo URL
+5. **`changeBio`** - Updates user's bio
+
+### Queries Implemented
+
+1. **`_userExists`** - Checks if a user with the given ID exists
+
+## Issues Encountered and Resolutions
+
+### Issue 1: deleteUser Security Enhancement
+
+**Problem**: The original specification allowed deletion with just a user ID, which could be a security risk if user IDs are exposed.
+
+**Resolution**: Changed the implementation to require username and password for deletion, providing an additional security layer. This ensures that only someone with the user's credentials can delete the account.
+
+### Issue 2: Missing Query in Specification
+
+**Problem**: The specification did not include any queries, but other concepts need to verify user existence.
+
+**Resolution**: Added `_userExists` query to the specification and implementation. This query is useful for cross-concept validation.
+
+### Issue 3: Empty String Validation
+
+**Problem**: The specification did not explicitly prohibit empty strings for photo URLs and bios, but allowing them could lead to inconsistent state.
+
+**Resolution**: Added validation to reject empty strings for `changePhoto` and `changeBio` actions, ensuring data consistency.
+
+## Testing Strategy
+
+The test suite includes:
+
+1. **Operational Principle Test**: Demonstrates the main workflow - registering a user, then authenticating multiple times to verify the same user ID is returned.
+
+2. **Scenario 1**: Register with existing username - tests duplicate username prevention.
+
+3. **Scenario 2**: Authentication failure cases - tests wrong password and non-existent username scenarios.
+
+4. **Scenario 3**: Delete user successfully - tests deletion with correct credentials and verifies user cannot authenticate after deletion.
+
+5. **Scenario 4**: Delete user with incorrect credentials - tests that deletion fails with wrong password and user remains.
+
+6. **Scenario 5**: Check if user exists - tests the `_userExists` query with existing, non-existent, and deleted users.
+
+7. **Scenario 6**: Change user photo - tests photo updates, empty URL rejection, and non-existent user handling.
+
+8. **Scenario 7**: Change user bio - tests bio updates, empty string rejection, and non-existent user handling.
+
+All tests follow the Deno testing framework pattern and use `testDb()` for database initialization.
+
+## Dependencies
+
+- **No cross-concept dependencies**: UserAuthentication does not import or reference any other concepts, maintaining independence.
+
+- **Utility dependencies**: Uses `@utils/types.ts` for `ID` and `Empty` types, and `@utils/database.ts` for `freshID()` and `testDb()`.
+
+- **MongoDB**: Uses `npm:mongodb` for database operations.
+
+## Security Considerations
+
+1. **Password Storage**: Currently stores passwords in plain text. For production use, passwords should be hashed using a secure algorithm.
+
+2. **Deletion Security**: The implementation requires username and password for deletion, providing better security than the original specification which only required a user ID.
+
+3. **Authentication**: Uses username and password matching for authentication. In production, this should use secure password hashing and comparison.
+
+## Conclusion
+
+The UserAuthentication concept has been successfully implemented following the established patterns from other concepts. All actions and queries from the specification are implemented, with necessary security enhancements and refinements. The implementation maintains concept independence, proper error handling, and comprehensive test coverage.
+
