@@ -51,3 +51,4 @@ Description
 * [UI Sketches](functional_design/UI_Sketches.pdf)
 * [Visual Design Study](functional_design/VisualStudy.md)
 * [Development Plan](functional_design/DevelopmentPlan.md)
+  * [Development Plan Update](DevelopmentPlanUpdate.md)
