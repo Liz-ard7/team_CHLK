@@ -1,0 +1,166 @@
+---
+timestamp: 'Sat Nov 29 2025 18:17:55 GMT-0500 (Eastern Standard Time)'
+parent: '[[..\20251129_181755.2cb467f4.md]]'
+content_id: c347370071459f2441cb3f43920b1a2a78d00fa9d43b20fcc404c5f6d266a639
+---
+
+# file: src/syncs/memory/ImageSyncs.sync.ts
+
+```typescript
+import { actions, Sync } from "@engine";
+import { Groups, ImageStorage, MemoryEntries, Requesting } from "@concepts";
+
+//
+// Syncs for Requesting a Secure Image Upload URL
+//
+
+/**
+ * Authorizes and initiates a request for a secure image upload URL.
+ *
+ * This sync triggers when a request is made to `/memory-images/upload-url`.
+ * It verifies that the requesting user is a member of the group associated with the memory
+ * before proceeding to call the ImageStorage concept to generate the URL.
+ */
+export const RequestMemoryImageUploadUrl: Sync = ({
+  request,
+  user,
+  memory,
+  filename,
+  contentType,
+  memoryDoc,
+  group,
+  members,
+}) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/memory-images/upload-url", user, memory, filename, contentType },
+    { request },
+  ]),
+  where: async (frames) => {
+    // 1. Find the memory to get its associated group ID.
+    frames = await frames.query(MemoryEntries._getMemory, { memoryID: memory }, { memory: memoryDoc });
+    // 2. Filter out requests where the memory doesn't exist.
+    frames = frames.filter(($) => $[memoryDoc]);
+    // 3. Extract the group ID from the memory document and add it to the frame.
+    frames = frames.map(($) => ({ ...$, [group]: $[memoryDoc].group }));
+    // 4. Get the list of members for that group.
+    frames = await frames.query(Groups._getGroupDetails, { groupID: group }, { members });
+    // 5. Authorize by keeping only frames where the requesting user is in the member list.
+    return frames.filter(($) => $[members] && $[members].includes($[user]));
+  },
+  then: actions([
+    ImageStorage.requestUploadUrl,
+    { user, filename, contentType },
+  ]),
+});
+
+/**
+ * Responds to the client with the generated upload URL upon successful creation.
+ *
+ * This sync matches a completed `ImageStorage.requestUploadUrl` action with its
+ * originating request within the same flow and sends the URL details back to the client.
+ */
+export const RequestMemoryImageUploadUrlResponse: Sync = ({
+  request,
+  user,
+  memory,
+  uploadUrl,
+  bucket,
+  object,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/upload-url", user, memory }, { request }],
+    [ImageStorage.requestUploadUrl, {}, { uploadUrl, bucket, object }],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, uploadUrl, bucket, object, memory, user },
+  ]),
+});
+
+/**
+ * Responds to the client with an error if URL generation fails.
+ *
+ * This sync handles the error case for `ImageStorage.requestUploadUrl` and
+ * sends the error message back to the client.
+ */
+export const RequestMemoryImageUploadUrlResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/upload-url" }, { request }],
+    [ImageStorage.requestUploadUrl, {}, { error }],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, error },
+  ]),
+});
+
+//
+// Syncs for Deleting an Image from a Memory Contribution
+//
+
+/**
+ * Authorizes and initiates a request to delete an image from a memory.
+ *
+ * This sync triggers on a request to delete an image. It verifies that the requesting user
+ * is the owner of the contribution containing the image before calling the action to delete it.
+ */
+export const AuthorizeDeleteImageFromMemoryRequest: Sync = ({
+  request,
+  user,
+  memory,
+  imageUrl,
+  memoryDoc,
+}) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/memory-images/delete", user, memory, imageUrl },
+    { request },
+  ]),
+  where: async (frames) => {
+    // 1. Fetch the memory document.
+    frames = await frames.query(MemoryEntries._getMemory, { memoryID: memory }, { memory: memoryDoc });
+    // 2. Authorize by ensuring the memory exists and contains a contribution from the user
+    //    that includes the specified image URL.
+    return frames.filter(($) =>
+      $[memoryDoc] &&
+      $[memoryDoc].contributions.some(
+        (c: { user: string; imageUrls: string[] }) => c.user === $[user] && c.imageUrls.includes($[imageUrl]),
+      )
+    );
+  },
+  then: actions([
+    MemoryEntries.deleteImage,
+    { user, memory, imageUrl },
+  ]),
+});
+
+/**
+ * Responds to the client upon successful image deletion.
+ */
+export const AuthorizeDeleteImageFromMemoryResponse: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/delete" }, { request }],
+    // The `deleteImage` action returns an empty object on success.
+    [MemoryEntries.deleteImage, {}, {}],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, status: "success" },
+  ]),
+});
+
+/**
+ * Responds to the client with an error if image deletion fails.
+ */
+export const AuthorizeDeleteImageFromMemoryResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/delete" }, { request }],
+    [MemoryEntries.deleteImage, {}, { error }],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, error },
+  ]),
+});
+```

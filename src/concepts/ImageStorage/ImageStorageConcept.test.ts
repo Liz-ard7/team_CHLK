@@ -6,7 +6,7 @@ import {
   fail,
 } from "@std/assert";
 import { testDb } from "@utils/database.ts";
-import ImageStorageConcept from "./ImageStorage.ts";
+import ImageStorageConcept from "./ImageStorageConcept.ts";
 import { ID } from "@utils/types.ts"; // Assuming ID is exported from here
 import * as gcs from "@utils/gcs.ts";
 

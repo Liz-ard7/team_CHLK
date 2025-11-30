@@ -7,6 +7,7 @@ import {
 } from "@concepts";
 import { actions, Frames, Sync } from "@engine";
 import type { Frame } from "../engine/frames.ts";
+import { ID } from "@utils/types.ts";
 
 /**
  * Sync: UpdateProfilePhotoOnUpload
@@ -154,9 +155,13 @@ export const AuthorizeAddContributionAsGroupMember: Sync = ({
   ]),
   where: async (frames) => {
     // 1. Get the memory object to find out which group it belongs to
-    frames = await frames.query(MemoryEntries._getMemory, { memoryID: memory }, {
-      memoryObj,
-    });
+    frames = await frames.query(
+      MemoryEntries._getMemory,
+      { memoryID: memory },
+      {
+        memoryObj,
+      },
+    );
 
     if (frames.length === 0) return frames;
 
@@ -264,4 +269,338 @@ export const CascadeUserDeletionToContributions: Sync = ({
       { memory: currentMemory, user },
     ],
   ),
+});
+
+// Calvin's Syncs
+
+/**
+ * @sync CascadeUserDeletionToGroups
+ * @description When a user is deleted, this synchronization finds all the groups they are a member of
+ * and triggers the `leaveGroup` action for each of those groups.
+ *
+ * @spec
+ * when
+ *   UserAuthentication.deleteUser () : (user)
+ * where
+ *   in Groups: _listGroupsForUser(user) gets groups
+ * then
+ *   Groups.leaveGroup (user, group)
+ */
+export const CascadeUserDeletionToGroups: Sync = (
+  { user, group, groupList },
+) => ({
+  when: actions(
+    // The `deleteUser` action returns the ID of the deleted user.
+    // We bind this ID to the `user` variable.
+    [UserAuthentication.deleteUser, {}, { user }],
+  ),
+  where: async (frames) => {
+    // For each deleted user, find all groups they are a member of.
+    // The `_listGroupsForUser` query returns a single frame with a `groupList` variable containing an array of group IDs.
+    // e.g., frames starts as: [{ [user]: "user_id" }]
+    frames = await frames.query(Groups._listGroupsForUser, { user }, {
+      groups: groupList,
+    });
+    // e.g., frames is now: [{ [user]: "user_id", [groupList]: ["group_1", "group_2"] }]
+
+    // We need to "unwind" this list to create a separate frame for each group,
+    // so the `then` clause can fire once per group.
+    return frames.flatMap(($) => {
+      const groupsForUser = $[groupList] as unknown[]; // The array of group IDs
+
+      // If the user is not in any groups, the query might return an empty list.
+      // In that case, we return an empty array of frames, and the `then` clause does not fire.
+      if (!groupsForUser || groupsForUser.length === 0) {
+        return [];
+      }
+
+      // Create a new frame for each group ID, binding it to the `group` variable.
+      return groupsForUser.map((g) => ({
+        ...$, // Keep original bindings (e.g., `user`)
+        [group]: g, // Add the `group` binding for the current group
+      }));
+      // e.g., the final frames will be:
+      // [
+      //   { [user]: "user_id", [groupList]: [...], [group]: "group_1" },
+      //   { [user]: "user_id", [groupList]: [...], [group]: "group_2" }
+      // ]
+    });
+  },
+  then: actions(
+    // For each frame produced by the `where` clause, fire the `leaveGroup` action
+    // with the corresponding `user` and `group` bindings.
+    [Groups.leaveGroup, { user, group }],
+  ),
+});
+
+/**
+ * @sync DeleteEmptyGroup
+ * @description When a user leaves a group, check if the group is now empty (no members and no pending invitations). If it is, delete the group.
+ * @spec
+ *   when
+ *     Groups.leaveGroup(user, group)
+ *   where
+ *     in Groups: members of group is empty AND invitedMembers of group is empty
+ *   then
+ *     Groups.deleteGroup(group)
+ */
+export const DeleteEmptyGroup: Sync = (
+  { user, group, members, invitedMembers },
+) => ({
+  when: actions(
+    [Groups.leaveGroup, { user, group }, {}],
+  ),
+  where: async (frames) => {
+    // For each group that a user just left, get its current list of members and invited members.
+    frames = await frames.query(Groups._getGroupDetails, { groupID: group }, {
+      members,
+      invitedMembers,
+    });
+    // Filter to keep only the frames for groups that are now completely empty.
+    // We must cast the values from the frame (which are `unknown`) to an array type to access .length.
+    return frames.filter(($) =>
+      ($[members] as unknown[]).length === 0 &&
+      ($[invitedMembers] as unknown[]).length === 0
+    );
+  },
+  then: actions(
+    [Groups.deleteGroup, { group }],
+  ),
+});
+
+/**
+ * @sync CascadeGroupDeletionToMemories
+ * @description When a group is deleted, find and delete all associated memories.
+ * @spec
+ *   when
+ *     Groups.deleteGroup(group)
+ *   where
+ *     in MemoryEntries: group of memory is group
+ *   then
+ *     MemoryEntries.deleteMemory(memory, creator)
+ */
+export const CascadeGroupDeletionToMemories: Sync = (
+  { group, memory, creator, memoryList },
+) => ({
+  when: actions(
+    [Groups.deleteGroup, { group }, {}],
+  ),
+  where: async (frames) => {
+    // 1. Query for the list of memories. This returns a single frame where `memoryList` is an array of memory IDs.
+    const framesWithList = await frames.query(
+      MemoryEntries._listMemoriesForGroup,
+      { groupID: group },
+      { memories: memoryList },
+    );
+
+    // 2. Expand the single frame into multiple frames, one for each memory ID in the list.
+    const expandedFrames = framesWithList.flatMap(($) => {
+      const memories = $[memoryList] as ID[]; // Assert the type to an array of IDs
+      if (!memories || memories.length === 0) {
+        return []; // No memories, so no frames to generate.
+      }
+      // Create a new frame object for each memory, carrying over existing bindings like `group`.
+      return memories.map((memID) => ({
+        ...$,
+        [memory]: memID, // Bind the single `memory` variable for the next query
+      }));
+    });
+
+    // If no memories were found, return an empty set of frames to halt the synchronization.
+    if (expandedFrames.length === 0) {
+      return new Frames();
+    }
+
+    // 3. Create a new Frames instance and query for the creator of each individual memory.
+    let perMemoryFrames = new Frames(...expandedFrames);
+    perMemoryFrames = await perMemoryFrames.query(MemoryEntries._getMemory, {
+      memoryID: memory,
+    }, { creator });
+
+    return perMemoryFrames;
+  },
+  then: actions(
+    // The `then` clause will now fire once for each frame produced by the `where` clause.
+    [MemoryEntries.deleteMemory, { memory, creator }],
+  ),
+});
+
+/**
+ * Authorizes and initiates a request for a secure image upload URL.
+ *
+ * This sync triggers when a request is made to `/memory-images/upload-url`.
+ * It verifies that the requesting user is a member of the group associated with the memory
+ * before proceeding to call the ImageStorage concept to generate the URL.
+ */
+export const RequestMemoryImageUploadUrl: Sync = ({
+  request,
+  user,
+  memory,
+  filename,
+  contentType,
+  memoryDoc,
+  group,
+  members,
+}) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/memory-images/upload-url", user, memory, filename, contentType },
+    { request },
+  ]),
+  where: async (frames) => {
+    // 1. Find the memory to get its associated group ID.
+    frames = await frames.query(
+      MemoryEntries._getMemory,
+      { memoryID: memory },
+      { memory: memoryDoc },
+    );
+    // 2. Filter out requests where the memory doesn't exist.
+    frames = frames.filter(($) => $[memoryDoc]);
+    // 3. Extract the group ID from the memory document and add it to the frame.
+    frames = frames.map(($) => ({
+      ...$,
+      [group]: ($[memoryDoc] as { group: string }).group,
+    }));
+    // 4. Get the list of members for that group.
+    frames = await frames.query(Groups._getGroupDetails, { groupID: group }, {
+      members,
+    });
+    // 5. Authorize by keeping only frames where the requesting user is in the member list.
+    return frames.filter(($) => {
+      const memberList = $[members] as string[] | undefined;
+      return memberList && memberList.includes($[user] as string);
+    });
+  },
+  then: actions([
+    ImageStorage.requestUploadUrl,
+    { user, filename, contentType },
+  ]),
+});
+
+/**
+ * Responds to the client with the generated upload URL upon successful creation.
+ *
+ * This sync matches a completed `ImageStorage.requestUploadUrl` action with its
+ * originating request within the same flow and sends the URL details back to the client.
+ */
+export const RequestMemoryImageUploadUrlResponse: Sync = ({
+  request,
+  user,
+  memory,
+  uploadUrl,
+  bucket,
+  object,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/upload-url", user, memory }, {
+      request,
+    }],
+    [ImageStorage.requestUploadUrl, {}, { uploadUrl, bucket, object }],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, uploadUrl, bucket, object, memory, user },
+  ]),
+});
+
+/**
+ * Responds to the client with an error if URL generation fails.
+ *
+ * This sync handles the error case for `ImageStorage.requestUploadUrl` and
+ * sends the error message back to the client.
+ */
+export const RequestMemoryImageUploadUrlResponseError: Sync = (
+  { request, error },
+) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/upload-url" }, { request }],
+    [ImageStorage.requestUploadUrl, {}, { error }],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, error },
+  ]),
+});
+
+//
+// Syncs for Deleting an Image from a Memory Contribution
+//
+
+/**
+ * Authorizes and initiates a request to delete an image from a memory.
+ *
+ * This sync triggers on a request to delete an image. It verifies that the requesting user
+ * is the owner of the contribution containing the image before calling the action to delete it.
+ */
+export const AuthorizeDeleteImageFromMemoryRequest: Sync = ({
+  request,
+  user,
+  memory,
+  imageUrl,
+  memoryDoc,
+}) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/memory-images/delete", user, memory, imageUrl },
+    { request },
+  ]),
+  where: async (frames) => {
+    // Define expected shapes for type safety
+    type Contribution = { user: string; imageUrls: string[] };
+    type MemoryDoc = { contributions: Contribution[] };
+
+    // 1. Fetch the memory document.
+    frames = await frames.query(
+      MemoryEntries._getMemory,
+      { memoryID: memory },
+      { memory: memoryDoc },
+    );
+    // 2. Authorize by ensuring the memory exists and contains a contribution from the user
+    //    that includes the specified image URL.
+    return frames.filter(($) => {
+      const doc = $[memoryDoc] as MemoryDoc | undefined;
+      const userToFind = $[user] as string;
+      const imageToFind = $[imageUrl] as string;
+
+      return doc &&
+        doc.contributions.some((c) =>
+          c.user === userToFind && c.imageUrls.includes(imageToFind)
+        );
+    });
+  },
+  then: actions([
+    MemoryEntries.deleteImage,
+    { user, memory, imageUrl },
+  ]),
+});
+
+/**
+ * Responds to the client upon successful image deletion.
+ */
+export const AuthorizeDeleteImageFromMemoryResponse: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/delete" }, { request }],
+    // The `deleteImage` action returns an empty object on success.
+    [MemoryEntries.deleteImage, {}, {}],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, status: "success" },
+  ]),
+});
+
+/**
+ * Responds to the client with an error if image deletion fails.
+ */
+export const AuthorizeDeleteImageFromMemoryResponseError: Sync = (
+  { request, error },
+) => ({
+  when: actions(
+    [Requesting.request, { path: "/memory-images/delete" }, { request }],
+    [MemoryEntries.deleteImage, {}, { error }],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, error },
+  ]),
 });
