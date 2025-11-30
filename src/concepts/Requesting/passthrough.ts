@@ -25,12 +25,12 @@
  */
 
 export const inclusions: Record<string, string> = {
-  // Feel free to delete these example inclusions
-  "/api/LikertSurvey/_getSurveyQuestions": "this is a public query",
-  "/api/LikertSurvey/_getSurveyResponses": "responses are public",
-  "/api/LikertSurvey/_getRespondentAnswers": "answers are visible",
-  "/api/LikertSurvey/submitResponse": "allow anyone to submit response",
-  "/api/LikertSurvey/updateResponse": "allow anyone to update their response",
+  // Public queries that don't require authorization
+  "/api/MemoryEntries/_getMemory": "public query to get memory details",
+  "/api/MemoryEntries/_listMemoriesForGroup": "public query to list memories for a group",
+  "/api/Groups/_getGroupDetails": "public query to get group details",
+  "/api/Groups/_listGroupsForUser": "public query to list groups for a user",
+  "/api/UserAuthentication/_userExists": "public query to check if user exists",
 };
 
 /**
@@ -44,7 +44,23 @@ export const inclusions: Record<string, string> = {
  */
 
 export const exclusions: Array<string> = [
-  // Feel free to delete these example exclusions
-  "/api/LikertSurvey/createSurvey",
-  "/api/LikertSurvey/addQuestion",
+  // Memory-related actions that use syncs for authorization
+  "/api/MemoryEntries/createMemory",
+  "/api/MemoryEntries/editTitle",
+  "/api/MemoryEntries/addContribution",
+  "/api/MemoryEntries/editContribution",
+  "/api/MemoryEntries/deleteContribution",
+  "/api/MemoryEntries/deleteMemory",
+  "/api/MemoryEntries/addImage",
+  "/api/MemoryEntries/deleteImage",
+  
+  // Group-related actions that use syncs for authorization
+  "/api/Groups/inviteMember",
+  
+  // User-related actions that use syncs
+  "/api/UserAuthentication/changePhoto",
+  
+  // Image storage actions that use syncs
+  "/api/ImageStorage/requestUploadUrl",
+  "/api/ImageStorage/confirmUpload",
 ];

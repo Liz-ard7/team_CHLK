@@ -47,8 +47,13 @@ async function discoverConcepts(baseDir: string): Promise<ConceptInfo[]> {
 
     try {
       await Deno.stat(conceptFilePath); // Check if file exists
-      const conceptName = conceptDirName.charAt(0).toUpperCase() +
+      // Convert directory name to concept name
+      // Special case: memoryentries -> MemoryEntries
+      let conceptName = conceptDirName.charAt(0).toUpperCase() +
         conceptDirName.slice(1);
+      if (conceptDirName === "memoryentries") {
+        conceptName = "MemoryEntries";
+      }
 
       concepts.push({
         name: conceptName,
