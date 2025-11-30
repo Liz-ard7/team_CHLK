@@ -1,0 +1,51 @@
+---
+timestamp: 'Sat Nov 29 2025 15:16:46 GMT-0500 (Eastern Standard Time)'
+parent: '[[..\20251129_151646.8e5180e0.md]]'
+content_id: ad6bad681a964d8a203485ac1b8d0c52ef0ccb7e2556d8cd846509034bba0953
+---
+
+# concept: Groups
+
+* **concept**: Groups
+* **purpose**: To provide a collaborative space where users can form groups and manage membership
+* **principle**:
+  * Users can create groups, invite friends to join, and manage group membership collectively.
+  * Each group maintains a name and a list of members, allowing users to collaborate on shared content
+  * Invitations ensure that group membership is controlled and consensual.
+  * Only group members can edit group details or participate in group activities, and users can choose to leave a group at any time.
+  * Deleting any group member follows a democratic process
+* **state**:
+  * A set of Groups with
+    * A group ID String
+    * A group Name String
+    * A set of members Users
+    * A set of invitedMembers Users
+* **actions**:
+  * `createGroup(user: User, name: String): (group: Group)`
+    * Requires: user to exist
+    * Effects: creates a new group with the user as a member of the group and a randomly generated unique ID. If name is empty, changes group name to be a list of the member names separated by comma. Otherwise, changes group name to be the parameter name.
+  * `editGroupName(user: User, group: Group, new_name: String)`
+    * Requires: user and group to exist, user to be a member within the group
+    * Effects: if new\_name is empty, changes group name to be a list of the member names separated by comma. Otherwise, changes group name to be the parameter name.
+  * `inviteMember(user: User, group: Group, userToInvite: User)`
+    * Requires: user + userToInvite + group to all exist, user to exist in the group, userToInvite to not already be a member or invited member of the group
+    * Effects: sends an invitation to the group to userToInvite
+  * `acceptInvitation(user: User, group: Group)`
+    * Requires: user and group to exist, user has been invited to group
+    * Effects: user is removed from list of invited members of the group, user is added to group as a member
+  * `declineInvitation(user: User, group: Group)`
+    * Requires: user and group to exist, user has been invited to group
+    * Effects: user is removed from list of invited members of the group
+  * `leaveGroup(user: User, group: Group)`
+    * Requires: user and group to exist, user to be a member of the group
+    * Effects: removes user from the list of members of the group
+  * `deleteGroup(group: Group)`
+    * Requires: group to exist. Requires group to have no more members and no invited members.
+    * Effects: removes the group from set of Groups
+* **queries**:
+  * `_getGroupDetails (groupID: String): (groupName: String, members: Set<User>, invitedMembers: Set<User>)`
+    * Requires: group associated with groupID exists.
+    * Effects: Returns the details of the specified group.
+  * `_listGroupsForUser (user: User): (groups: Set<Group>)`
+    * Requires: user exists.
+    * Effects: Returns a set of groups that the user is a member of.

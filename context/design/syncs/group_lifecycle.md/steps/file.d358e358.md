@@ -1,3 +1,12 @@
+---
+timestamp: 'Sat Nov 29 2025 16:46:10 GMT-0500 (Eastern Standard Time)'
+parent: '[[..\20251129_164610.be047e35.md]]'
+content_id: d358e358bcaf6c837b6ae752a6d71ac038f4ed0d829cb18a9f50a5fb36759211
+---
+
+# file: src/concepts/groups/GroupsConcept.ts
+
+```typescript
 import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
@@ -42,9 +51,7 @@ export default class GroupsConcept {
    * @requires user to exist
    * @effects creates a new group with the user as a member of the group and a randomly generated unique ID. If name is empty, changes group name to be a list of the member names separated by comma. Otherwise, changes group name to be the parameter name.
    */
-  async createGroup(
-    { user, name }: { user: User; name: string },
-  ): Promise<{ group: Group } | { error: string }> {
+  async createGroup({ user, name }: { user: User; name: string }): Promise<{ group: Group } | { error: string }> {
     // Note: The 'user exists' requirement cannot be checked within this concept, as it has no knowledge of User documents.
     // This must be enforced by the calling context or a dedicated User concept.
 
@@ -69,10 +76,7 @@ export default class GroupsConcept {
       return { group: groupID };
     } catch (e) {
       if (e instanceof Error) {
-        return {
-          error:
-            `An unexpected error occurred while creating group: ${e.message}`,
-        };
+        return { error: `An unexpected error occurred while creating group: ${e.message}` };
       }
       return { error: "An unknown error occurred while creating group." };
     }
@@ -84,9 +88,7 @@ export default class GroupsConcept {
    * @requires user and group to exist, user to be a member within the group
    * @effects if new_name is empty, changes group name to be a list of the member names separated by comma. Otherwise, changes group name to be the parameter name.
    */
-  async editGroupName(
-    { user, group, new_name }: { user: User; group: Group; new_name: string },
-  ): Promise<Empty | { error: string }> {
+  async editGroupName({ user, group, new_name }: { user: User; group: Group; new_name: string }): Promise<Empty | { error: string }> {
     try {
       const groupDoc = await this.groups.findOne({ _id: group });
       if (!groupDoc) {
@@ -94,33 +96,21 @@ export default class GroupsConcept {
       }
 
       if (!groupDoc.members.includes(user)) {
-        return {
-          error:
-            "Permission denied: Only group members can edit the group name.",
-        };
+        return { error: "Permission denied: Only group members can edit the group name." };
       }
 
-      const final_name = new_name.trim() === ""
-        ? groupDoc.members.join(", ")
-        : new_name;
+      const final_name = new_name.trim() === "" ? groupDoc.members.join(", ") : new_name;
 
-      const result = await this.groups.updateOne({ _id: group }, {
-        $set: { name: final_name },
-      });
+      const result = await this.groups.updateOne({ _id: group }, { $set: { name: final_name } });
 
       if (!result.acknowledged) {
-        return {
-          error: "Database operation failed: could not edit group name.",
-        };
+        return { error: "Database operation failed: could not edit group name." };
       }
 
       return {};
     } catch (e) {
       if (e instanceof Error) {
-        return {
-          error:
-            `An unexpected error occurred while editing group name: ${e.message}`,
-        };
+        return { error: `An unexpected error occurred while editing group name: ${e.message}` };
       }
       return { error: "An unknown error occurred while editing group name." };
     }
@@ -132,13 +122,7 @@ export default class GroupsConcept {
    * @requires user, userToInvite, and group to all exist, user to exist in the group, userToInvite to not already be a member or invited member of the group
    * @effects sends an invitation to the group to userToInvite
    */
-  async inviteMember(
-    { user, group, userToInvite }: {
-      user: User;
-      group: Group;
-      userToInvite: User;
-    },
-  ): Promise<Empty | { error: string }> {
+  async inviteMember({ user, group, userToInvite }: { user: User; group: Group; userToInvite: User }): Promise<Empty | { error: string }> {
     try {
       // First, check requirements by fetching the group document.
       const groupDoc = await this.groups.findOne({ _id: group });
@@ -148,9 +132,7 @@ export default class GroupsConcept {
       }
 
       if (!groupDoc.members.includes(user)) {
-        return {
-          error: "Permission denied: Only group members can invite others.",
-        };
+        return { error: "Permission denied: Only group members can invite others." };
       }
 
       if (groupDoc.members.includes(userToInvite)) {
@@ -163,9 +145,7 @@ export default class GroupsConcept {
       }
 
       // If all checks pass, perform the update.
-      const result = await this.groups.updateOne({ _id: group }, {
-        $addToSet: { invitedMembers: userToInvite },
-      });
+      const result = await this.groups.updateOne({ _id: group }, { $addToSet: { invitedMembers: userToInvite } });
 
       if (!result.acknowledged || result.modifiedCount === 0) {
         // The modifiedCount check handles race conditions where an invite might have been added
@@ -180,10 +160,7 @@ export default class GroupsConcept {
       return {};
     } catch (e) {
       if (e instanceof Error) {
-        return {
-          error:
-            `An unexpected error occurred while inviting member: ${e.message}`,
-        };
+        return { error: `An unexpected error occurred while inviting member: ${e.message}` };
       }
       return { error: "An unknown error occurred while inviting member." };
     }
@@ -195,9 +172,7 @@ export default class GroupsConcept {
    * @requires user and group to exist, user has been invited to group
    * @effects user is removed from list of invited members of the group, user is added to group as a member
    */
-  async acceptInvitation(
-    { user, group }: { user: User; group: Group },
-  ): Promise<Empty | { error: string }> {
+  async acceptInvitation({ user, group }: { user: User; group: Group }): Promise<Empty | { error: string }> {
     try {
       const groupDoc = await this.groups.findOne({ _id: group });
       if (!groupDoc) {
@@ -208,24 +183,16 @@ export default class GroupsConcept {
         return { error: "User has not been invited to this group." };
       }
 
-      const result = await this.groups.updateOne({ _id: group }, {
-        $pull: { invitedMembers: user },
-        $addToSet: { members: user },
-      });
+      const result = await this.groups.updateOne({ _id: group }, { $pull: { invitedMembers: user }, $addToSet: { members: user } });
 
       if (!result.acknowledged) {
-        return {
-          error: "Database operation failed: could not accept invitation.",
-        };
+        return { error: "Database operation failed: could not accept invitation." };
       }
 
       return {};
     } catch (e) {
       if (e instanceof Error) {
-        return {
-          error:
-            `An unexpected error occurred while accepting invitation: ${e.message}`,
-        };
+        return { error: `An unexpected error occurred while accepting invitation: ${e.message}` };
       }
       return { error: "An unknown error occurred while accepting invitation." };
     }
@@ -237,9 +204,7 @@ export default class GroupsConcept {
    * @requires user and group to exist, user has been invited to group
    * @effects user is removed from list of invited members of the group
    */
-  async declineInvitation(
-    { user, group }: { user: User; group: Group },
-  ): Promise<Empty | { error: string }> {
+  async declineInvitation({ user, group }: { user: User; group: Group }): Promise<Empty | { error: string }> {
     try {
       const groupDoc = await this.groups.findOne({ _id: group });
       if (!groupDoc) {
@@ -250,23 +215,16 @@ export default class GroupsConcept {
         return { error: "User has not been invited to this group." };
       }
 
-      const result = await this.groups.updateOne({ _id: group }, {
-        $pull: { invitedMembers: user },
-      });
+      const result = await this.groups.updateOne({ _id: group }, { $pull: { invitedMembers: user } });
 
       if (!result.acknowledged) {
-        return {
-          error: "Database operation failed: could not decline invitation.",
-        };
+        return { error: "Database operation failed: could not decline invitation." };
       }
 
       return {};
     } catch (e) {
       if (e instanceof Error) {
-        return {
-          error:
-            `An unexpected error occurred while declining invitation: ${e.message}`,
-        };
+        return { error: `An unexpected error occurred while declining invitation: ${e.message}` };
       }
       return { error: "An unknown error occurred while declining invitation." };
     }
@@ -278,9 +236,7 @@ export default class GroupsConcept {
    * @requires user and group to exist, user to be a member of the group
    * @effects removes user from the list of members of the group
    */
-  async leaveGroup(
-    { user, group }: { user: User; group: Group },
-  ): Promise<Empty | { error: string }> {
+  async leaveGroup({ user, group }: { user: User; group: Group }): Promise<Empty | { error: string }> {
     try {
       const groupDoc = await this.groups.findOne({ _id: group });
       if (!groupDoc) {
@@ -289,19 +245,14 @@ export default class GroupsConcept {
       if (!groupDoc.members.includes(user)) {
         return { error: "User is not a member of this group." };
       }
-      const result = await this.groups.updateOne({ _id: group }, {
-        $pull: { members: user },
-      });
+      const result = await this.groups.updateOne({ _id: group }, { $pull: { members: user } });
       if (!result.acknowledged) {
         return { error: "Database operation failed: could not leave group." };
       }
       return {};
     } catch (e) {
       if (e instanceof Error) {
-        return {
-          error:
-            `An unexpected error occurred while leaving group: ${e.message}`,
-        };
+        return { error: `An unexpected error occurred while leaving group: ${e.message}` };
       }
       return { error: "An unknown error occurred while leaving group." };
     }
@@ -313,9 +264,7 @@ export default class GroupsConcept {
    * @requires group to exist. Requires group to have no more members and no invited members.
    * @effects removes the group from set of Groups
    */
-  async deleteGroup(
-    { group }: { group: Group },
-  ): Promise<Empty | { error: string }> {
+  async deleteGroup({ group }: { group: Group }): Promise<Empty | { error: string }> {
     try {
       const groupDoc = await this.groups.findOne({ _id: group });
       if (!groupDoc) {
@@ -339,10 +288,7 @@ export default class GroupsConcept {
       return {};
     } catch (e) {
       if (e instanceof Error) {
-        return {
-          error:
-            `An unexpected error occurred while deleting group: ${e.message}`,
-        };
+        return { error: `An unexpected error occurred while deleting group: ${e.message}` };
       }
       return { error: "An unknown error occurred while deleting group." };
     }
@@ -354,11 +300,7 @@ export default class GroupsConcept {
    * @requires group associated with groupID exists.
    * @effects Returns the details of the specified group.
    */
-  async _getGroupDetails(
-    { groupID }: { groupID: string },
-  ): Promise<
-    Array<{ groupName: string; members: User[]; invitedMembers: User[] }>
-  > {
+  async _getGroupDetails({ groupID }: { groupID: string }): Promise<Array<{ groupName: string; members: User[]; invitedMembers: User[] }>> {
     try {
       const groupDoc = await this.groups.findOne({ _id: groupID as Group });
 
@@ -375,13 +317,9 @@ export default class GroupsConcept {
       ];
     } catch (e) {
       if (e instanceof Error) {
-        throw new Error(
-          `Database query failed in _getGroupDetails: ${e.message}`,
-        );
+        throw new Error(`Database query failed in _getGroupDetails: ${e.message}`);
       }
-      throw new Error(
-        "An unknown database error occurred in _getGroupDetails.",
-      );
+      throw new Error("An unknown database error occurred in _getGroupDetails.");
     }
   }
 
@@ -391,9 +329,7 @@ export default class GroupsConcept {
    * @requires user exists.
    * @effects Returns a set of groups that the user is a member of.
    */
-  async _listGroupsForUser(
-    { user }: { user: User },
-  ): Promise<Array<{ groups: Group[] }>> {
+  async _listGroupsForUser({ user }: { user: User }): Promise<Array<{ groups: Group[] }>> {
     try {
       const userGroups = await this.groups.find({ members: user }).toArray();
       const groupIds = userGroups.map((group) => group._id);
@@ -401,13 +337,10 @@ export default class GroupsConcept {
       return [{ groups: groupIds }];
     } catch (e) {
       if (e instanceof Error) {
-        throw new Error(
-          `Database query failed in _listGroupsForUser: ${e.message}`,
-        );
+        throw new Error(`Database query failed in _listGroupsForUser: ${e.message}`);
       }
-      throw new Error(
-        "An unknown database error occurred in _listGroupsForUser.",
-      );
+      throw new Error("An unknown database error occurred in _listGroupsForUser.");
     }
   }
 }
+```
