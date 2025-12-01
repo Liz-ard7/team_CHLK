@@ -154,19 +154,16 @@ export default class UserAuthenticationConcept {
   }
 
   /**
-   * _getUserByUsername (username: String): ({ userId: User })
+   * _getUserByUsername (username: String): ({ userId: User | null })
    *
    * Query to get a user's ID by their username.
-   * Returns empty array if user not found.
+   * Returns null for userId if user not found.
    */
   async _getUserByUsername(
     { username }: { username: string },
-  ): Promise<Array<{ userId: User }>> {
+  ): Promise<Array<{ userId: User | null }>> {
     const found = await this.users.findOne({ username });
-    if (!found) {
-      return [];
-    }
-    return [{ userId: found._id }];
+    return [{ userId: found ? found._id : null }];
   }
 
   /**
