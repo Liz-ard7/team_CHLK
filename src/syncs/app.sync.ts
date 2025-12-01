@@ -104,7 +104,7 @@ export const AddImageToMemoryAfterUploadConfirmation: Sync = ({
  */
 export const AuthorizeMemoryCreation: Sync = ({
   request,
-  user,
+  creator,
   group,
   title,
   memory,
@@ -112,7 +112,7 @@ export const AuthorizeMemoryCreation: Sync = ({
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/memories/create", user, group, title },
+    { path: "/MemoryEntries/createMemory", creator, group, title },
     { request },
   ]),
   where: async (frames) => {
@@ -122,12 +122,46 @@ export const AuthorizeMemoryCreation: Sync = ({
     // Filter frames where the user is in the members list
     return frames.filter((f) => {
       const memberList = f[members] as string[];
-      const userId = String(f[user]);
+      const userId = String(f[creator]);
       return memberList.includes(userId);
     });
   },
   then: actions(
-    [MemoryEntries.createMemory, { creator: user, group, title }, { memory }],
+    [MemoryEntries.createMemory, { creator: creator, group, title }, {
+      memory,
+    }],
+  ),
+});
+
+/**
+ * Sync: AuthorizeMemoryCreationResponse
+ *
+ * Responds to the client after a successful memory creation. Separated from
+ * `AuthorizeMemoryCreation` because engine `then` clauses do not chain output
+ * bindings for subsequent `then` patterns.
+ *
+ * when
+ *   Requesting.request(path: "/MemoryEntries/createMemory", creator, group, title) : (request)
+ *   MemoryEntries.createMemory(creator, group, title) : (memory)
+ * then
+ *   Requesting.respond(request, memory)
+ */
+export const AuthorizeMemoryCreationResponse: Sync = ({
+  request,
+  creator,
+  group,
+  title,
+  memory,
+}) => ({
+  when: actions(
+    [
+      Requesting.request,
+      { path: "/MemoryEntries/createMemory", creator, group, title },
+      { request },
+    ],
+    [MemoryEntries.createMemory, {}, { memory }],
+  ),
+  then: actions(
     [Requesting.respond, { request, memory }],
   ),
 });
@@ -669,7 +703,9 @@ export const AuthorizeGroupInviteResponse: Sync = ({ request }) => ({
 /**
  * Responds to the client with an error if group invite fails.
  */
-export const AuthorizeGroupInviteResponseError: Sync = ({ request, error }) => ({
+export const AuthorizeGroupInviteResponseError: Sync = (
+  { request, error },
+) => ({
   when: actions(
     [Requesting.request, { path: "/groups/invite" }, { request }],
     [Groups.inviteMember, {}, { error }],
@@ -702,7 +738,7 @@ export const AuthorizeEditMemoryTitle: Sync = ({
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/memories/editTitle", user, memory, newTitle },
+    { path: "/MemoryEntries/editTitle", user, memory, newTitle },
     { request },
   ]),
   where: async (frames) => {
@@ -779,7 +815,11 @@ export const AuthorizeEditMyContributionDescription: Sync = ({
   ]),
   where: async (frames) => {
     // Define expected shapes for type safety
-    type Contribution = { user: string; description: string; imageUrls: string[] };
+    type Contribution = {
+      user: string;
+      description: string;
+      imageUrls: string[];
+    };
     type MemoryDoc = { contributions: Contribution[] };
 
     // Query to get the memory document
@@ -862,7 +902,11 @@ export const AuthorizeDeleteMyContribution: Sync = ({
   ]),
   where: async (frames) => {
     // Define expected shapes for type safety
-    type Contribution = { user: string; description: string; imageUrls: string[] };
+    type Contribution = {
+      user: string;
+      description: string;
+      imageUrls: string[];
+    };
     type MemoryDoc = { contributions: Contribution[] };
 
     // Query to get the memory document
