@@ -30,7 +30,9 @@ export const inclusions: Record<string, string> = {
   "/api/MemoryEntries/_listMemoriesForGroup": "public query to list memories for a group",
   "/api/Groups/_getGroupDetails": "public query to get group details",
   "/api/Groups/_listGroupsForUser": "public query to list groups for a user",
+  "/api/Groups/_listInvitationsForUser": "public query to list invitations for a user",
   "/api/UserAuthentication/_userExists": "public query to check if user exists",
+  "/api/UserAuthentication/_getUserByUsername": "public query to get user ID by username",
 };
 
 /**
@@ -53,13 +55,13 @@ export const exclusions: Array<string> = [
   "/api/MemoryEntries/deleteMemory",
   "/api/MemoryEntries/addImage",
   "/api/MemoryEntries/deleteImage",
-  
+
   // Group-related actions that use syncs for authorization
   "/api/Groups/inviteMember",
-  
+
   // User-related actions that use syncs
   "/api/UserAuthentication/changePhoto",
-  
+
   // Image storage actions that use syncs
   "/api/ImageStorage/requestUploadUrl",
   "/api/ImageStorage/confirmUpload",

@@ -154,6 +154,22 @@ export default class UserAuthenticationConcept {
   }
 
   /**
+   * _getUserByUsername (username: String): ({ userId: User })
+   *
+   * Query to get a user's ID by their username.
+   * Returns empty array if user not found.
+   */
+  async _getUserByUsername(
+    { username }: { username: string },
+  ): Promise<Array<{ userId: User }>> {
+    const found = await this.users.findOne({ username });
+    if (!found) {
+      return [];
+    }
+    return [{ userId: found._id }];
+  }
+
+  /**
    * changePhoto (user: User, new_photo: String)
    *
    * Requires: user to exist, new_photo to correspond to an existing image
