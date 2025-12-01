@@ -410,4 +410,30 @@ export default class GroupsConcept {
       );
     }
   }
+
+  /**
+   * _listInvitationsForUser (user: User): (invitations: Set<Group>)
+   *
+   * @requires user exists.
+   * @effects Returns a set of groups that the user has been invited to.
+   */
+  async _listInvitationsForUser(
+    { user }: { user: User },
+  ): Promise<Array<{ invitations: Group[] }>> {
+    try {
+      const invitedGroups = await this.groups.find({ invitedMembers: user }).toArray();
+      const groupIds = invitedGroups.map((group) => group._id);
+
+      return [{ invitations: groupIds }];
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new Error(
+          `Database query failed in _listInvitationsForUser: ${e.message}`,
+        );
+      }
+      throw new Error(
+        "An unknown database error occurred in _listInvitationsForUser.",
+      );
+    }
+  }
 }

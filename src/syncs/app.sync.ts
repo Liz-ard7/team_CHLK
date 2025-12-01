@@ -682,7 +682,6 @@ export const AuthorizeGroupInvite: Sync = ({
   },
   then: actions(
     [Groups.inviteMember, { user, group, userToInvite }],
-    [Requesting.respond, { request, status: "success" }],
   ),
 });
 
@@ -791,26 +790,27 @@ export const AuthorizeEditMemoryTitleResponseError: Sync = ({
 /**
  * @sync AuthorizeEditMyContributionDescription
  * @description Authorizes a user to edit their own contribution description.
- * Verifies that the memory exists and the user has a contribution in that memory.
+ * Verifies that the memory exists and the user owns the contribution at the specified index.
  *
  * @spec
  * when
- *   Request.editContribution(user, memory, newDescription)
+ *   Request.editContribution(user, memory, contributionIndex, newDescription)
  * where
- *   in MemoryEntries: memory_M exists and memory_M ID is memory AND contribution_C exists in memory_M's set of contributions AND user of contribution_C is user
+ *   in MemoryEntries: memory_M exists and memory_M ID is memory AND contribution at contributionIndex is owned by user
  * then
- *   MemoryEntries.editContribution(memory, user, newDescription)
+ *   MemoryEntries.editContribution(memory, contributionIndex, user, newDescription)
  */
 export const AuthorizeEditMyContributionDescription: Sync = ({
   request,
   user,
   memory,
+  contributionIndex,
   newDescription,
   memoryDoc,
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/contributions/edit", user, memory, newDescription },
+    { path: "/contributions/edit", user, memory, contributionIndex, newDescription },
     { request },
   ]),
   where: async (frames) => {
@@ -828,18 +828,21 @@ export const AuthorizeEditMyContributionDescription: Sync = ({
       { memoryID: memory },
       { memory: memoryDoc },
     );
-    // Filter to ensure the memory exists and contains a contribution from the user
+    // Filter to ensure the memory exists and the contribution at the index is owned by the user
     return frames.filter(($) => {
       const doc = $[memoryDoc] as MemoryDoc | undefined;
       const userToFind = $[user] as string;
+      const index = $[contributionIndex] as number;
 
-      return doc &&
-        doc.contributions.some((c) => c.user === userToFind);
+      if (!doc || !doc.contributions) return false;
+      if (index < 0 || index >= doc.contributions.length) return false;
+
+      const contribution = doc.contributions[index];
+      return contribution.user === userToFind;
     });
   },
   then: actions(
-    [MemoryEntries.editContribution, { memory, user, newDescription }],
-    [Requesting.respond, { request, status: "success" }],
+    [MemoryEntries.editContribution, { memory, contributionIndex, user, newDescription }],
   ),
 });
 
