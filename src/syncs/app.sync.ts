@@ -665,7 +665,7 @@ export const AuthorizeGroupInvite: Sync = ({
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/groups/invite", user, group, userToInvite },
+    { path: "/Groups/inviteMember", user, group, userToInvite },
     { request },
   ]),
   where: async (frames) => {
@@ -690,7 +690,7 @@ export const AuthorizeGroupInvite: Sync = ({
  */
 export const AuthorizeGroupInviteResponse: Sync = ({ request }) => ({
   when: actions(
-    [Requesting.request, { path: "/groups/invite" }, { request }],
+    [Requesting.request, { path: "/Groups/inviteMember" }, { request }],
     [Groups.inviteMember, {}, {}],
   ),
   then: actions([
@@ -706,7 +706,7 @@ export const AuthorizeGroupInviteResponseError: Sync = (
   { request, error },
 ) => ({
   when: actions(
-    [Requesting.request, { path: "/groups/invite" }, { request }],
+    [Requesting.request, { path: "/Groups/inviteMember" }, { request }],
     [Groups.inviteMember, {}, { error }],
   ),
   then: actions([
