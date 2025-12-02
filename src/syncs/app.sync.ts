@@ -67,7 +67,7 @@ export const TriggerMemoryImageConfirm: Sync = ({
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/memory-images/confirm", user, object, memory },
+    { path: "/ImageStorage/confirmUpload", user, object, memory },
     { request },
   ]),
   then: actions([ImageStorage.confirmUpload, { user, object }]),
@@ -83,7 +83,7 @@ export const AddImageToMemoryAfterUploadConfirmation: Sync = ({
   when: actions(
     [
       Requesting.request,
-      { path: "/memory-images/confirm", user, object, memory },
+      { path: "/ImageStorage/confirmUpload", user, object, memory },
       { request },
     ],
     [ImageStorage.confirmUpload, { user, object }, { url }],
@@ -184,7 +184,13 @@ export const AuthorizeAddContributionAsGroupMember: Sync = ({
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/contributions/add", user, memory, description, imageUrls },
+    {
+      path: "/MemoryEntries/addContribution",
+      user,
+      memory,
+      description,
+      imageUrls,
+    },
     { request },
   ]),
   where: async (frames) => {
@@ -192,9 +198,7 @@ export const AuthorizeAddContributionAsGroupMember: Sync = ({
     frames = await frames.query(
       MemoryEntries._getMemory,
       { memoryID: memory },
-      {
-        memoryObj,
-      },
+      { memory: memoryObj },
     );
 
     if (frames.length === 0) return frames;
@@ -207,11 +211,14 @@ export const AuthorizeAddContributionAsGroupMember: Sync = ({
     }));
 
     // 3. Query the group details using the bound group symbol
-    const nextFrames = await framesWithGroup.query(
-      Groups._getGroupDetails,
-      { groupID: group },
-      { members },
-    );
+    const nextFrames = await framesWithGroup
+      // Guard: ensure group binding is present before next query
+      .filter(($) => $[group])
+      .query(
+        Groups._getGroupDetails,
+        { groupID: group },
+        { members },
+      );
 
     // 4. Filter for membership
     return nextFrames.filter((f) => {
@@ -470,15 +477,19 @@ export const RequestMemoryImageUploadUrl: Sync = ({
   request,
   user,
   memory,
-  filename,
-  contentType,
+  imagename,
   memoryDoc,
   group,
   members,
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/memory-images/upload-url", user, memory, filename, contentType },
+    {
+      path: "/ImageStorage/requestUploadUrl",
+      user,
+      memory,
+      imagename,
+    },
     { request },
   ]),
   where: async (frames) => {
@@ -507,7 +518,7 @@ export const RequestMemoryImageUploadUrl: Sync = ({
   },
   then: actions([
     ImageStorage.requestUploadUrl,
-    { user, filename, contentType },
+    { user, imagename },
   ]),
 });
 
@@ -526,7 +537,11 @@ export const RequestMemoryImageUploadUrlResponse: Sync = ({
   object,
 }) => ({
   when: actions(
-    [Requesting.request, { path: "/memory-images/upload-url", user, memory }, {
+    [Requesting.request, {
+      path: "/ImageStorage/requestUploadUrl",
+      user,
+      memory,
+    }, {
       request,
     }],
     [ImageStorage.requestUploadUrl, {}, { uploadUrl, bucket, object }],
@@ -547,7 +562,9 @@ export const RequestMemoryImageUploadUrlResponseError: Sync = (
   { request, error },
 ) => ({
   when: actions(
-    [Requesting.request, { path: "/memory-images/upload-url" }, { request }],
+    [Requesting.request, { path: "/ImageStorage/requestUploadUrl" }, {
+      request,
+    }],
     [ImageStorage.requestUploadUrl, {}, { error }],
   ),
   then: actions([
@@ -810,7 +827,13 @@ export const AuthorizeEditMyContributionDescription: Sync = ({
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/contributions/edit", user, memory, contributionIndex, newDescription },
+    {
+      path: "/MemoryEntries/editContribution",
+      user,
+      memory,
+      contributionIndex,
+      newDescription,
+    },
     { request },
   ]),
   where: async (frames) => {
@@ -842,7 +865,12 @@ export const AuthorizeEditMyContributionDescription: Sync = ({
     });
   },
   then: actions(
-    [MemoryEntries.editContribution, { memory, contributionIndex, user, newDescription }],
+    [MemoryEntries.editContribution, {
+      memory,
+      contributionIndex,
+      user,
+      newDescription,
+    }],
   ),
 });
 
@@ -853,7 +881,9 @@ export const AuthorizeEditMyContributionDescriptionResponse: Sync = ({
   request,
 }) => ({
   when: actions(
-    [Requesting.request, { path: "/contributions/edit" }, { request }],
+    [Requesting.request, { path: "/MemoryEntries/editContribution" }, {
+      request,
+    }],
     [MemoryEntries.editContribution, {}, {}],
   ),
   then: actions([
@@ -870,7 +900,9 @@ export const AuthorizeEditMyContributionDescriptionResponseError: Sync = ({
   error,
 }) => ({
   when: actions(
-    [Requesting.request, { path: "/contributions/edit" }, { request }],
+    [Requesting.request, { path: "/MemoryEntries/editContribution" }, {
+      request,
+    }],
     [MemoryEntries.editContribution, {}, { error }],
   ),
   then: actions([
