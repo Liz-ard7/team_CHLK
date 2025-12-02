@@ -38,7 +38,8 @@ Deno.test(
         memory: memoryID,
         user: user1,
         description: "What an amazing trip! We visited three countries.",
-        imageUrls: "https://example.com/photo1.jpg,https://example.com/photo2.jpg",
+        imageUrls:
+          "https://example.com/photo1.jpg,https://example.com/photo2.jpg",
       });
       if ("error" in addContribution1Result) {
         throw new Error(
@@ -77,8 +78,10 @@ Deno.test(
       console.log("5. User1 editing contribution...");
       const editContributionResult = await memoryConcept.editContribution({
         memory: memoryID,
+        contributionIndex: 0, // User1's contribution is at index 0
         user: user1,
-        newDescription: "What an amazing trip! We visited three countries and made unforgettable memories.",
+        newDescription:
+          "What an amazing trip! We visited three countries and made unforgettable memories.",
       });
       if ("error" in editContributionResult) {
         throw new Error(
@@ -242,17 +245,18 @@ Deno.test(
       assertEquals(invalidMemoryResult.length, 0);
       console.log("   ✓ Non-existent memory returns empty array");
 
-      // Test: Edit contribution that doesn't exist should fail
-      console.log("5. Testing edit non-existent contribution...");
-      const editNonExistentResult = await memoryConcept.editContribution({
+      // Test: Edit contribution with invalid index should fail
+      console.log("5. Testing edit with invalid contribution index...");
+      const editInvalidIndexResult = await memoryConcept.editContribution({
         memory: memoryID,
-        user: user2, // user2 hasn't contributed yet
+        contributionIndex: 99, // Invalid index
+        user: user1,
         newDescription: "This should fail",
       });
-      assertEquals("error" in editNonExistentResult, true);
-      if ("error" in editNonExistentResult) {
+      assertEquals("error" in editInvalidIndexResult, true);
+      if ("error" in editInvalidIndexResult) {
         console.log(
-          `   ✓ Edit non-existent contribution rejected: ${editNonExistentResult.error}`,
+          `   ✓ Edit with invalid index rejected: ${editInvalidIndexResult.error}`,
         );
       }
 
@@ -322,7 +326,9 @@ Deno.test(
         imageUrl: "photo3.jpg",
       });
       if ("error" in addDuplicateResult) {
-        throw new Error(`Failed to add duplicate image: ${addDuplicateResult.error}`);
+        throw new Error(
+          `Failed to add duplicate image: ${addDuplicateResult.error}`,
+        );
       }
       console.log("   ✓ Duplicate image handled gracefully");
 
@@ -341,9 +347,10 @@ Deno.test(
       const memoryAfterDelete = await memoryConcept._getMemory({
         memoryID: memoryID,
       });
-      const contributionAfterDelete = memoryAfterDelete[0].memory.contributions.find(
-        (c) => c.user === user1,
-      );
+      const contributionAfterDelete = memoryAfterDelete[0].memory.contributions
+        .find(
+          (c) => c.user === user1,
+        );
       assertExists(contributionAfterDelete);
       assertEquals(contributionAfterDelete.imageUrls.length, 2);
       assertEquals(
@@ -418,10 +425,11 @@ Deno.test(
       assertEquals(memory[0].memory.contributions.length, 3);
       console.log("1. Verified 3 contributions exist");
 
-      // Delete user2's contribution
+      // Delete user2's contribution (at index 1)
       console.log("2. Deleting user2's contribution...");
       const deleteContributionResult = await memoryConcept.deleteContribution({
         memory: memoryID,
+        contributionIndex: 1, // User2's contribution is at index 1
         user: user2,
       });
       if ("error" in deleteContributionResult) {
@@ -439,11 +447,12 @@ Deno.test(
       assertEquals(user2Contribution, undefined);
       console.log("   ✓ User2's contribution deleted");
 
-      // Try to delete non-existent contribution should fail
-      console.log("3. Testing delete non-existent contribution...");
+      // Try to delete with invalid index should fail
+      console.log("3. Testing delete with invalid index...");
       const deleteNonExistentResult = await memoryConcept.deleteContribution({
         memory: memoryID,
-        user: user2, // Already deleted
+        contributionIndex: 99, // Invalid index
+        user: user1,
       });
       assertEquals("error" in deleteNonExistentResult, true);
       if ("error" in deleteNonExistentResult) {
@@ -544,30 +553,36 @@ Deno.test(
       });
       console.log("2. Added initial contribution");
 
-      // Update existing contribution (addContribution should update if user already contributed)
-      console.log("3. Updating existing contribution...");
-      const updateContributionResult = await memoryConcept.addContribution({
+      // Add second contribution from same user (users can now add multiple contributions)
+      console.log("3. Adding second contribution from same user...");
+      const addSecondContributionResult = await memoryConcept.addContribution({
         memory: memoryID,
         user: user1,
-        description: "Updated description",
+        description: "Second description",
         imageUrls: "img1.jpg,img2.jpg,img3.jpg",
       });
-      if ("error" in updateContributionResult) {
+      if ("error" in addSecondContributionResult) {
         throw new Error(
-          `Failed to update contribution: ${updateContributionResult.error}`,
+          `Failed to add second contribution: ${addSecondContributionResult.error}`,
         );
       }
 
-      // Verify contribution was updated
+      // Verify both contributions exist
       memory = await memoryConcept._getMemory({ memoryID: memoryID });
-      const contribution = memory[0].memory.contributions.find(
+      const user1Contributions = memory[0].memory.contributions.filter(
         (c) => c.user === user1,
       );
-      assertExists(contribution);
-      assertEquals(contribution.description, "Updated description");
-      assertEquals(contribution.imageUrls.length, 3);
-      assertEquals(contribution.imageUrls.includes("img2.jpg"), true);
-      console.log("   ✓ Contribution updated successfully");
+      assertEquals(
+        user1Contributions.length,
+        2,
+        "User1 should have 2 contributions",
+      );
+      assertEquals(user1Contributions[0].description, "First description");
+      assertEquals(user1Contributions[0].imageUrls.length, 1);
+      assertEquals(user1Contributions[1].description, "Second description");
+      assertEquals(user1Contributions[1].imageUrls.length, 3);
+      assertEquals(user1Contributions[1].imageUrls.includes("img2.jpg"), true);
+      console.log("   ✓ Both contributions exist for same user");
 
       // List memories for group
       console.log("4. Listing memories for group...");
@@ -586,3 +601,311 @@ Deno.test(
   },
 );
 
+Deno.test(
+  "Interesting Scenario 6: Editing contribution with image updates",
+  async () => {
+    const [db, client] = await testDb();
+    const memoryConcept = new MemoryEntriesConcept(db);
+
+    try {
+      console.log("\n=== Scenario 6: Edit Contribution with Images ===");
+
+      // Create memory and add contribution
+      const createResult = await memoryConcept.createMemory({
+        creator: user1,
+        group: group1,
+        title: "Photo Gallery",
+      });
+      if ("error" in createResult) {
+        throw new Error(`Failed to create memory: ${createResult.error}`);
+      }
+      const memoryID = createResult.memory;
+
+      // Add initial contribution with images
+      await memoryConcept.addContribution({
+        memory: memoryID,
+        user: user1,
+        description: "Original description",
+        imageUrls: "img1.jpg,img2.jpg",
+      });
+      console.log("1. Added contribution with 2 images");
+
+      // Verify initial state
+      let memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      let contribution = memory[0].memory.contributions[0];
+      assertEquals(contribution.imageUrls.length, 2);
+      assertEquals(contribution.description, "Original description");
+
+      // Edit description only (keep images)
+      console.log("2. Editing description only...");
+      const editDescResult = await memoryConcept.editContribution({
+        memory: memoryID,
+        contributionIndex: 0,
+        user: user1,
+        newDescription: "Updated description",
+        // newImageUrls not provided, should keep existing images
+      });
+      if ("error" in editDescResult) {
+        throw new Error(`Failed to edit contribution: ${editDescResult.error}`);
+      }
+
+      // Verify description changed but images stayed the same
+      memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      contribution = memory[0].memory.contributions[0];
+      assertEquals(contribution.description, "Updated description");
+      assertEquals(contribution.imageUrls.length, 2);
+      assertEquals(contribution.imageUrls.includes("img1.jpg"), true);
+      assertEquals(contribution.imageUrls.includes("img2.jpg"), true);
+      console.log("   ✓ Description updated, images preserved");
+
+      // Edit both description and images
+      console.log("3. Editing description and images...");
+      const editBothResult = await memoryConcept.editContribution({
+        memory: memoryID,
+        contributionIndex: 0,
+        user: user1,
+        newDescription: "Final description",
+        newImageUrls: "new1.jpg,new2.jpg,new3.jpg",
+      });
+      if ("error" in editBothResult) {
+        throw new Error(`Failed to edit contribution: ${editBothResult.error}`);
+      }
+
+      // Verify both changed
+      memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      contribution = memory[0].memory.contributions[0];
+      assertEquals(contribution.description, "Final description");
+      assertEquals(contribution.imageUrls.length, 3);
+      assertEquals(contribution.imageUrls.includes("new1.jpg"), true);
+      assertEquals(contribution.imageUrls.includes("new2.jpg"), true);
+      assertEquals(contribution.imageUrls.includes("new3.jpg"), true);
+      assertEquals(contribution.imageUrls.includes("img1.jpg"), false);
+      console.log("   ✓ Both description and images updated");
+
+      // Test: User cannot edit another user's contribution
+      console.log("4. Testing edit protection...");
+      await memoryConcept.addContribution({
+        memory: memoryID,
+        user: user2,
+        description: "User2's contribution",
+        imageUrls: "user2img.jpg",
+      });
+
+      const editOtherUserResult = await memoryConcept.editContribution({
+        memory: memoryID,
+        contributionIndex: 1, // User2's contribution
+        user: user1, // But trying as user1
+        newDescription: "Trying to edit someone else's contribution",
+      });
+      assertEquals("error" in editOtherUserResult, true);
+      if ("error" in editOtherUserResult) {
+        console.log(
+          `   ✓ Cannot edit other user's contribution: ${editOtherUserResult.error}`,
+        );
+      }
+
+      // Test: Edit with empty newImageUrls should clear images
+      console.log("5. Testing clear all images...");
+      const clearImagesResult = await memoryConcept.editContribution({
+        memory: memoryID,
+        contributionIndex: 0,
+        user: user1,
+        newDescription: "No images",
+        newImageUrls: "", // Empty string should clear images
+      });
+      if ("error" in clearImagesResult) {
+        throw new Error(`Failed to clear images: ${clearImagesResult.error}`);
+      }
+
+      memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      contribution = memory[0].memory.contributions[0];
+      assertEquals(contribution.imageUrls.length, 0);
+      console.log("   ✓ Images cleared successfully");
+
+      console.log("✓ Scenario 6 passed");
+    } finally {
+      await client.close();
+    }
+  },
+);
+
+Deno.test(
+  "Interesting Scenario 7: User can add multiple contributions to the same memory",
+  async () => {
+    const [db, client] = await testDb();
+    const memoryConcept = new MemoryEntriesConcept(db);
+
+    try {
+      console.log(
+        "\n=== Scenario 7: Multiple Contributions from Same User ===",
+      );
+
+      // Create memory
+      const createResult = await memoryConcept.createMemory({
+        creator: user1,
+        group: group1,
+        title: "Multi-Contribution Memory",
+      });
+      if ("error" in createResult) {
+        throw new Error(`Failed to create memory: ${createResult.error}`);
+      }
+      const memoryID = createResult.memory;
+      console.log("1. Created memory");
+
+      // User1 adds first contribution
+      console.log("2. User1 adding first contribution...");
+      const addFirstResult = await memoryConcept.addContribution({
+        memory: memoryID,
+        user: user1,
+        description: "First contribution from User1",
+        imageUrls: "img1.jpg,img2.jpg",
+      });
+      if ("error" in addFirstResult) {
+        throw new Error(
+          `Failed to add first contribution: ${addFirstResult.error}`,
+        );
+      }
+
+      // User1 adds second contribution
+      console.log("3. User1 adding second contribution...");
+      const addSecondResult = await memoryConcept.addContribution({
+        memory: memoryID,
+        user: user1,
+        description: "Second contribution from User1",
+        imageUrls: "img3.jpg",
+      });
+      if ("error" in addSecondResult) {
+        throw new Error(
+          `Failed to add second contribution: ${addSecondResult.error}`,
+        );
+      }
+
+      // User1 adds third contribution
+      console.log("4. User1 adding third contribution...");
+      const addThirdResult = await memoryConcept.addContribution({
+        memory: memoryID,
+        user: user1,
+        description: "Third contribution from User1",
+        imageUrls: "",
+      });
+      if ("error" in addThirdResult) {
+        throw new Error(
+          `Failed to add third contribution: ${addThirdResult.error}`,
+        );
+      }
+
+      // Verify all three contributions exist
+      let memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      const user1Contributions = memory[0].memory.contributions.filter(
+        (c) => c.user === user1,
+      );
+      assertEquals(
+        user1Contributions.length,
+        3,
+        "User1 should have 3 contributions",
+      );
+      assertEquals(
+        user1Contributions[0].description,
+        "First contribution from User1",
+      );
+      assertEquals(
+        user1Contributions[1].description,
+        "Second contribution from User1",
+      );
+      assertEquals(
+        user1Contributions[2].description,
+        "Third contribution from User1",
+      );
+      console.log("   ✓ All 3 contributions from User1 exist");
+
+      // User2 adds contributions too
+      console.log("5. User2 adding contributions...");
+      await memoryConcept.addContribution({
+        memory: memoryID,
+        user: user2,
+        description: "User2 first contribution",
+        imageUrls: "user2img1.jpg",
+      });
+      await memoryConcept.addContribution({
+        memory: memoryID,
+        user: user2,
+        description: "User2 second contribution",
+        imageUrls: "user2img2.jpg",
+      });
+
+      // Verify total contributions
+      memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      assertEquals(
+        memory[0].memory.contributions.length,
+        5,
+        "Should have 5 total contributions",
+      );
+
+      const user2Contributions = memory[0].memory.contributions.filter(
+        (c) => c.user === user2,
+      );
+      assertEquals(
+        user2Contributions.length,
+        2,
+        "User2 should have 2 contributions",
+      );
+      console.log("   ✓ Total of 5 contributions (3 from User1, 2 from User2)");
+
+      // Test editing specific contribution by index
+      console.log("6. Editing User1's second contribution (index 1)...");
+      const editResult = await memoryConcept.editContribution({
+        memory: memoryID,
+        contributionIndex: 1, // User1's second contribution
+        user: user1,
+        newDescription: "Updated second contribution",
+        newImageUrls: "updated1.jpg,updated2.jpg",
+      });
+      if ("error" in editResult) {
+        throw new Error(`Failed to edit contribution: ${editResult.error}`);
+      }
+
+      // Verify edit affected only the specific contribution
+      memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      assertEquals(
+        memory[0].memory.contributions[0].description,
+        "First contribution from User1",
+      );
+      assertEquals(
+        memory[0].memory.contributions[1].description,
+        "Updated second contribution",
+      );
+      assertEquals(memory[0].memory.contributions[1].imageUrls.length, 2);
+      assertEquals(
+        memory[0].memory.contributions[2].description,
+        "Third contribution from User1",
+      );
+      console.log("   ✓ Only the specific contribution at index 1 was updated");
+
+      // Test deleting a specific contribution
+      console.log("7. Deleting User1's first contribution (index 0)...");
+      const deleteResult = await memoryConcept.deleteContribution({
+        memory: memoryID,
+        contributionIndex: 0, // Delete first contribution
+        user: user1,
+      });
+      if ("error" in deleteResult) {
+        throw new Error(`Failed to delete contribution: ${deleteResult.error}`);
+      }
+
+      memory = await memoryConcept._getMemory({ memoryID: memoryID });
+      const remainingUser1Contributions = memory[0].memory.contributions.filter(
+        (c) => c.user === user1,
+      );
+      assertEquals(
+        remainingUser1Contributions.length,
+        2,
+        "User1 should have 2 contributions left",
+      );
+      console.log("   ✓ One contribution deleted, 2 remaining for User1");
+
+      console.log("✓ Scenario 7 passed");
+    } finally {
+      await client.close();
+    }
+  },
+);

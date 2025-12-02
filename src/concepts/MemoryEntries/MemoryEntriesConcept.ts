@@ -142,16 +142,18 @@ export default class MemoryEntriesConcept {
   }
 
   /**
-   * editContribution (memory: Memory, user: User, newDescription: String)
+   * editContribution (memory: Memory, contributionIndex: Number, user: User, newDescription: String, newImageUrls?: String)
    *
-   * @requires memory and user to exist, user is within the group that the memory is in, newDescription cannot be empty, user has an existing contribution for this memory
-   * @effects update the contribution's description of the user for the particular memory to be newDescription
+   * @requires memory and user to exist, user is within the group that the memory is in, contributionIndex is valid, newDescription cannot be empty, the contribution at contributionIndex belongs to the user
+   * @effects update the contribution's description and optionally the imageUrls of the user for the particular memory. If newImageUrls is provided, replace the existing imageUrls with the new ones (comma-separated string).
    */
   async editContribution(
-    { memory, user, newDescription }: {
+    { memory, contributionIndex, user, newDescription, newImageUrls }: {
       memory: Memory;
+      contributionIndex: number;
       user: User;
       newDescription: string;
+      newImageUrls?: string;
     },
   ): Promise<Empty | { error: string }> {
     if (newDescription.trim() === "") {
@@ -165,21 +167,36 @@ export default class MemoryEntriesConcept {
         return { error: "Memory not found." };
       }
 
-      const contributionIndex = memoryDoc.contributions.findIndex(
-        (c) => c.user === user,
-      );
-
-      if (contributionIndex === -1) {
-        return {
-          error: "User does not have a contribution for this memory.",
-        };
+      // Validate contribution index
+      if (
+        contributionIndex < 0 ||
+        contributionIndex >= memoryDoc.contributions.length
+      ) {
+        return { error: "Invalid contribution index." };
       }
 
-      // Update the contribution description
+      // Verify the contribution belongs to the user
+      if (memoryDoc.contributions[contributionIndex].user !== user) {
+        return { error: "Cannot edit another user's contribution." };
+      }
+
+      // Update the contribution
       const updatedContributions = [...memoryDoc.contributions];
+      const existingContribution = updatedContributions[contributionIndex];
+
+      // Parse new image URLs if provided
+      let imageUrlArray = existingContribution.imageUrls;
+      if (newImageUrls !== undefined) {
+        imageUrlArray = newImageUrls
+          .split(",")
+          .map((url) => url.trim())
+          .filter((url) => url !== "");
+      }
+
       updatedContributions[contributionIndex] = {
-        ...updatedContributions[contributionIndex],
+        ...existingContribution,
         description: newDescription.trim(),
+        imageUrls: imageUrlArray,
       };
 
       const result = await this.memories.updateOne(
@@ -211,7 +228,7 @@ export default class MemoryEntriesConcept {
    * addContribution(memory: Memory, user: User, description: String, imageUrls: String)
    *
    * @requires user to be a member of the group associated with memory, description cannot be empty
-   * @effects add a new contribution with the User user, split the imageUrls string (comma-separated) into a set of imageUrl strings, and description as description. Add this contribution to the memory's set of contributions. If the user already has a contribution for this memory, update the existing contribution instead.
+   * @effects add a new contribution with the User user, split the imageUrls string (comma-separated) into a set of imageUrl strings, and description as description. Add this contribution to the memory's set of contributions. Users can add multiple contributions to the same memory.
    */
   async addContribution(
     { memory, user, description, imageUrls }: {
@@ -238,48 +255,27 @@ export default class MemoryEntriesConcept {
         .map((url) => url.trim())
         .filter((url) => url !== "");
 
-      const contributionIndex = memoryDoc.contributions.findIndex(
-        (c) => c.user === user,
-      );
-
       const newContribution: Contribution = {
         user: user,
         description: description.trim(),
         imageUrls: imageUrlArray,
       };
 
-      if (contributionIndex === -1) {
-        // Add new contribution
-        const updatedContributions = [
-          ...memoryDoc.contributions,
-          newContribution,
-        ];
+      // Always add a new contribution (users can have multiple contributions)
+      const updatedContributions = [
+        ...memoryDoc.contributions,
+        newContribution,
+      ];
 
-        const result = await this.memories.updateOne(
-          { _id: memory },
-          { $set: { contributions: updatedContributions } },
-        );
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { contributions: updatedContributions } },
+      );
 
-        if (!result.acknowledged) {
-          return {
-            error: "Database operation failed: could not add contribution.",
-          };
-        }
-      } else {
-        // Update existing contribution
-        const updatedContributions = [...memoryDoc.contributions];
-        updatedContributions[contributionIndex] = newContribution;
-
-        const result = await this.memories.updateOne(
-          { _id: memory },
-          { $set: { contributions: updatedContributions } },
-        );
-
-        if (!result.acknowledged) {
-          return {
-            error: "Database operation failed: could not update contribution.",
-          };
-        }
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not add contribution.",
+        };
       }
 
       return {};
@@ -297,13 +293,17 @@ export default class MemoryEntriesConcept {
   }
 
   /**
-   * deleteContribution(memory: Memory, user: User)
+   * deleteContribution(memory: Memory, contributionIndex: Number, user: User)
    *
-   * @requires memory and user to exist, user has an existing contribution within the memory's set of contributions
-   * @effects remove the contribution associated with the user from memory's set of contributions
+   * @requires memory and user to exist, contributionIndex is valid, the contribution at contributionIndex belongs to user
+   * @effects remove the contribution at the specified index from memory's set of contributions
    */
   async deleteContribution(
-    { memory, user }: { memory: Memory; user: User },
+    { memory, contributionIndex, user }: {
+      memory: Memory;
+      contributionIndex: number;
+      user: User;
+    },
   ): Promise<Empty | { error: string }> {
     try {
       const memoryDoc = await this.memories.findOne({ _id: memory });
@@ -312,19 +312,22 @@ export default class MemoryEntriesConcept {
         return { error: "Memory not found." };
       }
 
-      const contributionIndex = memoryDoc.contributions.findIndex(
-        (c) => c.user === user,
-      );
-
-      if (contributionIndex === -1) {
-        return {
-          error: "User does not have a contribution for this memory.",
-        };
+      // Validate contribution index
+      if (
+        contributionIndex < 0 ||
+        contributionIndex >= memoryDoc.contributions.length
+      ) {
+        return { error: "Invalid contribution index." };
       }
 
-      // Remove the contribution
+      // Verify the contribution belongs to the user
+      if (memoryDoc.contributions[contributionIndex].user !== user) {
+        return { error: "Cannot delete another user's contribution." };
+      }
+
+      // Remove the contribution at the specific index
       const updatedContributions = memoryDoc.contributions.filter(
-        (c) => c.user !== user,
+        (_, index) => index !== contributionIndex,
       );
 
       const result = await this.memories.updateOne(
@@ -546,15 +549,17 @@ export default class MemoryEntriesConcept {
    */
   async _getMemory(
     { memoryID }: { memoryID: string },
-  ): Promise<Array<{
-    memory: {
-      memoryID: Memory;
-      group: Group;
-      creator: User;
-      title: string;
-      contributions: Contribution[];
-    };
-  }>> {
+  ): Promise<
+    Array<{
+      memory: {
+        memoryID: Memory;
+        group: Group;
+        creator: User;
+        title: string;
+        contributions: Contribution[];
+      };
+    }>
+  > {
     try {
       const memoryDoc = await this.memories.findOne({
         _id: memoryID as Memory,
@@ -611,4 +616,3 @@ export default class MemoryEntriesConcept {
     }
   }
 }
-
