@@ -61,6 +61,7 @@ export const exclusions: Array<string> = [
 
   // Group-related actions that use syncs for authorization
   "/api/Groups/inviteMember",
+  "/api/Groups/leaveGroup",
 
   // User-related actions that use syncs
   "/api/UserAuthentication/changePhoto",

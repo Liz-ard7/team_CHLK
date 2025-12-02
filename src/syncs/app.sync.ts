@@ -1077,3 +1077,75 @@ export const AuthorizeDeleteMyMemoryResponseError: Sync = ({
     { request, error },
   ]),
 });
+
+/**
+ * @sync AuthorizeLeaveGroup
+ * @description Authorizes a user to leave a group.
+ * Verifies that the user is a member of the group before allowing them to leave.
+ *
+ * @spec
+ * when
+ *   Request.leaveGroup(user, group)
+ * where
+ *   in Groups: user is a member of group
+ * then
+ *   Groups.leaveGroup(user, group)
+ */
+export const AuthorizeLeaveGroup: Sync = ({
+  request,
+  user,
+  group,
+  members,
+}) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/Groups/leaveGroup", user, group },
+    { request },
+  ]),
+  where: async (frames) => {
+    // Query the group details to get the members list
+    frames = await frames.query(Groups._getGroupDetails, { groupID: group }, {
+      members,
+    });
+    // Filter to keep only frames where the requesting user is in the members list
+    return frames.filter(($) => {
+      const memberList = $[members] as string[] | undefined;
+      const userId = String($[user]);
+      return memberList && memberList.includes(userId);
+    });
+  },
+  then: actions(
+    [Groups.leaveGroup, { user, group }],
+  ),
+});
+
+/**
+ * Responds to the client upon successful group leave.
+ */
+export const AuthorizeLeaveGroupResponse: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Groups/leaveGroup" }, { request }],
+    [Groups.leaveGroup, {}, {}],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, status: "success" },
+  ]),
+});
+
+/**
+ * Responds to the client with an error if group leave fails.
+ */
+export const AuthorizeLeaveGroupResponseError: Sync = ({
+  request,
+  error,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Groups/leaveGroup" }, { request }],
+    [Groups.leaveGroup, {}, { error }],
+  ),
+  then: actions([
+    Requesting.respond,
+    { request, error },
+  ]),
+});
