@@ -1,3 +1,692 @@
+---
+timestamp: 'Wed Dec 03 2025 11:42:51 GMT-0500 (Eastern Standard Time)'
+parent: '[[..\20251203_114251.85212cf7.md]]'
+content_id: a33fb71baabf46768722ddd52ccb76990c4a4adf369975c0827587aa39952fa8
+---
+
+# file: src/concepts/memoryentries/MemoryEntriesConcept.ts
+
+```typescript
+import { Collection, Db } from "npm:mongodb";
+import { Empty, ID } from "@utils/types.ts";
+import { freshID } from "@utils/database.ts";
+
+// Declare collection prefix, use concept name
+const PREFIX = "MemoryEntries" + ".";
+
+// Generic types of this concept
+type User = ID;
+type Group = ID;
+type Memory = ID;
+
+/**
+ * @concept MemoryEntries
+ * @purpose Record and organize shared memories within a group, allowing members to collectively contribute photos and descriptions that capture meaningful experiences
+ * @principle Each memory belongs to a specific group and a user. Members can create a new memory entry, edit its title or description, and add or remove images to reflect shared experiences. A memory can be viewed by all group members. Group members can edit the title of the memory and add their own individual descriptions (textual and visual). Only the creator of the memory can delete the memory. This design ensures that each memory grows through collective input while maintaining clear ownership and editing control. Each memory has a creator, and group members can add their own contributions (descriptions and images). Users can edit or delete their own contributions.
+ */
+
+/**
+ * A set of Memories with
+ * - A Memory ID String (mapped to _id)
+ * - A group (given as ID)
+ * - A creator User
+ * - A title String
+ * - A date the memory occurred
+ * - A set of Contributions with
+ *   - A set of imageUrls String
+ *   - A description String
+ *   - An associated user User
+ */
+interface Contribution {
+  user: User;
+  description: string;
+  imageUrls: string[];
+}
+
+interface MemoryDoc {
+  _id: Memory;
+  group: Group;
+  creator: User;
+  title: string;
+  date: Date;
+  contributions: Contribution[];
+}
+
+export default class MemoryEntriesConcept {
+  public readonly memories: Collection<MemoryDoc>;
+
+  constructor(private readonly db: Db) {
+    this.memories = this.db.collection(PREFIX + "memories");
+  }
+
+  /**
+   * createMemory (creator: User, group: String, title: String, date: String): (memory: Memory)
+   *
+   * @requires the creator and group to exist, creator is a member of the group, title is non-empty, date is a valid date string
+   * @effects create a new memory record with the parameter title and date, an empty set of contributions, and a randomly generated ID linked to the group.
+   */
+  async createMemory(
+    { creator, group, title, date }: {
+      creator: User;
+      group: Group;
+      title: string;
+      date: string;
+    },
+  ): Promise<{ memory: Memory } | { error: string }> {
+    // Note: The 'creator exists' and 'creator is a member of the group' requirements cannot be checked within this concept.
+    // This must be enforced by the calling context or a dedicated Group/User concept.
+
+    if (title.trim() === "") {
+      return { error: "Title cannot be empty." };
+    }
+
+    const memoryDate = new Date(date);
+    if (isNaN(memoryDate.getTime())) {
+      return { error: "Invalid date format." };
+    }
+
+    const memoryID = freshID() as Memory;
+
+    const newMemory: MemoryDoc = {
+      _id: memoryID,
+      group: group,
+      creator: creator,
+      title: title.trim(),
+      date: memoryDate,
+      contributions: [],
+    };
+
+    try {
+      const result = await this.memories.insertOne(newMemory);
+      if (!result.acknowledged) {
+        return { error: "Database operation failed: could not create memory." };
+      }
+      return { memory: memoryID };
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while creating memory: ${e.message}`,
+        };
+      }
+      return { error: "An unknown error occurred while creating memory." };
+    }
+  }
+
+  /**
+   * editTitle(memory: Memory, user: User, newTitle: String)
+   *
+   * @requires user, memory, and group to exist. user is within the group that the memory is in. newTitle is non-empty
+   * @effects Changes the title of the memory with the given id to newTitle
+   */
+  async editTitle(
+    { memory, user, newTitle }: {
+      memory: Memory;
+      user: User;
+      newTitle: string;
+    },
+  ): Promise<Empty | { error: string }> {
+    if (newTitle.trim() === "") {
+      return { error: "Title cannot be empty." };
+    }
+
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      // Note: We cannot check if user is in the group within this concept.
+      // This must be enforced by the calling context.
+
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { title: newTitle.trim() } },
+      );
+
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not edit title.",
+        };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while editing title: ${e.message}`,
+        };
+      }
+      return { error: "An unknown error occurred while editing title." };
+    }
+  }
+
+  /**
+   * editDate(memory: Memory, user: User, newDate: String)
+   *
+   * @requires user, memory, and group to exist. user is within the group that the memory is in. newDate is a valid date string.
+   * @effects Changes the date of the memory with the given id to newDate
+   */
+  async editDate(
+    { memory, user, newDate }: { memory: Memory; user: User; newDate: string },
+  ): Promise<Empty | { error: string }> {
+    const memoryDate = new Date(newDate);
+    if (isNaN(memoryDate.getTime())) {
+      return { error: "Invalid date format." };
+    }
+
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      // Note: We cannot check if user is in the group within this concept.
+
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { date: memoryDate } },
+      );
+
+      if (!result.acknowledged) {
+        return { error: "Database operation failed: could not edit date." };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while editing date: ${e.message}`,
+        };
+      }
+      return { error: "An unknown error occurred while editing date." };
+    }
+  }
+
+  /**
+   * editContribution (memory: Memory, contributionIndex: Number, user: User, newDescription: String, newImageUrls?: String)
+   *
+   * @requires memory and user to exist, user is within the group that the memory is in, contributionIndex is valid, newDescription cannot be empty, the contribution at contributionIndex belongs to the user
+   * @effects update the contribution's description and optionally the imageUrls of the user for the particular memory. If newImageUrls is provided, replace the existing imageUrls with the new ones (comma-separated string).
+   */
+  async editContribution(
+    { memory, contributionIndex, user, newDescription, newImageUrls }: {
+      memory: Memory;
+      contributionIndex: number;
+      user: User;
+      newDescription: string;
+      newImageUrls?: string;
+    },
+  ): Promise<Empty | { error: string }> {
+    if (newDescription.trim() === "") {
+      return { error: "Description cannot be empty." };
+    }
+
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      // Validate contribution index
+      if (
+        contributionIndex < 0 ||
+        contributionIndex >= memoryDoc.contributions.length
+      ) {
+        return { error: "Invalid contribution index." };
+      }
+
+      // Verify the contribution belongs to the user
+      if (memoryDoc.contributions[contributionIndex].user !== user) {
+        return { error: "Cannot edit another user's contribution." };
+      }
+
+      // Update the contribution
+      const updatedContributions = [...memoryDoc.contributions];
+      const existingContribution = updatedContributions[contributionIndex];
+
+      // Parse new image URLs if provided
+      let imageUrlArray = existingContribution.imageUrls;
+      if (newImageUrls !== undefined) {
+        imageUrlArray = newImageUrls
+          .split(",")
+          .map((url) => url.trim())
+          .filter((url) => url !== "");
+      }
+
+      updatedContributions[contributionIndex] = {
+        ...existingContribution,
+        description: newDescription.trim(),
+        imageUrls: imageUrlArray,
+      };
+
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { contributions: updatedContributions } },
+      );
+
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not edit contribution.",
+        };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while editing contribution: ${e.message}`,
+        };
+      }
+      return {
+        error: "An unknown error occurred while editing contribution.",
+      };
+    }
+  }
+
+  /**
+   * addContribution(memory: Memory, user: User, description: String, imageUrls: String)
+   *
+   * @requires user to be a member of the group associated with memory, description cannot be empty
+   * @effects add a new contribution with the User user, split the imageUrls string (comma-separated) into a set of imageUrl strings, and description as description. Add this contribution to the memory's set of contributions. Users can add multiple contributions to the same memory.
+   */
+  async addContribution(
+    { memory, user, description, imageUrls }: {
+      memory: Memory;
+      user: User;
+      description: string;
+      imageUrls: string;
+    },
+  ): Promise<Empty | { error: string }> {
+    if (description.trim() === "") {
+      return { error: "Description cannot be empty." };
+    }
+
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      // Split imageUrls string by comma and filter out empty strings
+      const imageUrlArray = imageUrls
+        .split(",")
+        .map((url) => url.trim())
+        .filter((url) => url !== "");
+
+      const newContribution: Contribution = {
+        user: user,
+        description: description.trim(),
+        imageUrls: imageUrlArray,
+      };
+
+      // Always add a new contribution (users can have multiple contributions)
+      const updatedContributions = [
+        ...memoryDoc.contributions,
+        newContribution,
+      ];
+
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { contributions: updatedContributions } },
+      );
+
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not add contribution.",
+        };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while adding contribution: ${e.message}`,
+        };
+      }
+      return {
+        error: "An unknown error occurred while adding contribution.",
+      };
+    }
+  }
+
+  /**
+   * deleteContribution(memory: Memory, contributionIndex: Number, user: User)
+   *
+   * @requires memory and user to exist, contributionIndex is valid, the contribution at contributionIndex belongs to user
+   * @effects remove the contribution at the specified index from memory's set of contributions
+   */
+  async deleteContribution(
+    { memory, contributionIndex, user }: {
+      memory: Memory;
+      contributionIndex: number;
+      user: User;
+    },
+  ): Promise<Empty | { error: string }> {
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      // Validate contribution index
+      if (
+        contributionIndex < 0 ||
+        contributionIndex >= memoryDoc.contributions.length
+      ) {
+        return { error: "Invalid contribution index." };
+      }
+
+      // Verify the contribution belongs to the user
+      if (memoryDoc.contributions[contributionIndex].user !== user) {
+        return { error: "Cannot delete another user's contribution." };
+      }
+
+      // Remove the contribution at the specific index
+      const updatedContributions = memoryDoc.contributions.filter(
+        (_, index) => index !== contributionIndex,
+      );
+
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { contributions: updatedContributions } },
+      );
+
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not delete contribution.",
+        };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while deleting contribution: ${e.message}`,
+        };
+      }
+      return {
+        error: "An unknown error occurred while deleting contribution.",
+      };
+    }
+  }
+
+  /**
+   * addImage(user: User, memory: Memory, imageUrl: String)
+   *
+   * @requires user and memory to exist, user is associated with a contribution in memory, imageUrl corresponds to an existing image
+   * @effects Adds image to the set of images within the user's contribution for this memory
+   */
+  async addImage(
+    { user, memory, imageUrl }: {
+      user: User;
+      memory: Memory;
+      imageUrl: string;
+    },
+  ): Promise<Empty | { error: string }> {
+    if (imageUrl.trim() === "") {
+      return { error: "Image URL cannot be empty." };
+    }
+
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      const contributionIndex = memoryDoc.contributions.findIndex(
+        (c) => c.user === user,
+      );
+
+      if (contributionIndex === -1) {
+        return {
+          error: "User does not have a contribution for this memory.",
+        };
+      }
+
+      const contribution = memoryDoc.contributions[contributionIndex];
+
+      // Check if image already exists
+      if (contribution.imageUrls.includes(imageUrl.trim())) {
+        // Image already exists, which is not an error
+        return {};
+      }
+
+      // Add the image
+      const updatedImageUrls = [...contribution.imageUrls, imageUrl.trim()];
+      const updatedContributions = [...memoryDoc.contributions];
+      updatedContributions[contributionIndex] = {
+        ...contribution,
+        imageUrls: updatedImageUrls,
+      };
+
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { contributions: updatedContributions } },
+      );
+
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not add image.",
+        };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while adding image: ${e.message}`,
+        };
+      }
+      return { error: "An unknown error occurred while adding image." };
+    }
+  }
+
+  /**
+   * deleteImage (user: User, memory: Memory, imageUrl: String)
+   *
+   * @requires user and memory to exist, user is associated with a contribution in memory, the contribution contains the parameter imageUrl
+   * @effects removes image from the user's contribution for this memory
+   */
+  async deleteImage(
+    { user, memory, imageUrl }: {
+      user: User;
+      memory: Memory;
+      imageUrl: string;
+    },
+  ): Promise<Empty | { error: string }> {
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      const contributionIndex = memoryDoc.contributions.findIndex(
+        (c) => c.user === user,
+      );
+
+      if (contributionIndex === -1) {
+        return {
+          error: "User does not have a contribution for this memory.",
+        };
+      }
+
+      const contribution = memoryDoc.contributions[contributionIndex];
+
+      if (!contribution.imageUrls.includes(imageUrl)) {
+        return {
+          error: "Image URL not found in user's contribution.",
+        };
+      }
+
+      // Remove the image
+      const updatedImageUrls = contribution.imageUrls.filter(
+        (url) => url !== imageUrl,
+      );
+      const updatedContributions = [...memoryDoc.contributions];
+      updatedContributions[contributionIndex] = {
+        ...contribution,
+        imageUrls: updatedImageUrls,
+      };
+
+      const result = await this.memories.updateOne(
+        { _id: memory },
+        { $set: { contributions: updatedContributions } },
+      );
+
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not delete image.",
+        };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while deleting image: ${e.message}`,
+        };
+      }
+      return { error: "An unknown error occurred while deleting image." };
+    }
+  }
+
+  /**
+   * deleteMemory (memory: Memory, creator: User)
+   *
+   * @requires a memory created by user-self exists
+   * @effects removes the entire memory from the group, removes all contributions associated with that memory
+   */
+  async deleteMemory(
+    { memory, creator }: { memory: Memory; creator: User },
+  ): Promise<Empty | { error: string }> {
+    try {
+      const memoryDoc = await this.memories.findOne({ _id: memory });
+
+      if (!memoryDoc) {
+        return { error: "Memory not found." };
+      }
+
+      if (memoryDoc.creator !== creator) {
+        return {
+          error: "Permission denied: Only the creator can delete the memory.",
+        };
+      }
+
+      const result = await this.memories.deleteOne({ _id: memory });
+
+      if (!result.acknowledged) {
+        return {
+          error: "Database operation failed: could not delete memory.",
+        };
+      }
+
+      return {};
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          error:
+            `An unexpected error occurred while deleting memory: ${e.message}`,
+        };
+      }
+      return { error: "An unknown error occurred while deleting memory." };
+    }
+  }
+
+  /**
+   * _getMemory (memoryID: String): (memory: Memory)
+   *
+   * @requires memoryID exists, and the requesting user (if any) is a member of the associated group (implied security context, possibly via syncs).
+   * @effects Returns the full memory object.
+   */
+  async _getMemory(
+    { memoryID }: { memoryID: string },
+  ): Promise<
+    Array<{
+      memory: {
+        memoryID: Memory;
+        group: Group;
+        creator: User;
+        title: string;
+        date: string;
+        contributions: Contribution[];
+      };
+    }>
+  > {
+    try {
+      const memoryDoc = await this.memories.findOne({
+        _id: memoryID as Memory,
+      });
+
+      if (!memoryDoc) {
+        return [];
+      }
+
+      return [
+        {
+          memory: {
+            memoryID: memoryDoc._id,
+            group: memoryDoc.group,
+            creator: memoryDoc.creator,
+            title: memoryDoc.title,
+            date: memoryDoc.date.toISOString(),
+            contributions: memoryDoc.contributions,
+          },
+        },
+      ];
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new Error(`Database query failed in _getMemory: ${e.message}`);
+      }
+      throw new Error("An unknown database error occurred in _getMemory.");
+    }
+  }
+
+  /**
+   * _listMemoriesForGroup (groupID: String): (memories: Set<Memory>)
+   *
+   * @requires `groupID` exists, and the requesting user is a member of `groupID`.
+   * @effects Returns a set of memory objects for the specified group.
+   */
+  async _listMemoriesForGroup(
+    { groupID }: { groupID: string },
+  ): Promise<Array<{ memories: Memory[] }>> {
+    try {
+      const groupMemories = await this.memories
+        .find({ group: groupID as Group })
+        .toArray();
+      const memoryIds = groupMemories.map((memory) => memory._id);
+
+      return [{ memories: memoryIds }];
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new Error(
+          `Database query failed in _listMemoriesForGroup: ${e.message}`,
+        );
+      }
+      throw new Error(
+        "An unknown database error occurred in _listMemoriesForGroup.",
+      );
+    }
+  }
+}
+```
+
+```typescript
 import { assertEquals, assertExists, assertRejects } from "jsr:@std/assert";
 import { testDb } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
@@ -24,7 +713,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Summer Trip 2024",
-        date: "2024-07-15T10:00:00.000Z",
       });
       assertExists(createResult);
       if ("error" in createResult) {
@@ -126,7 +814,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Birthday Party",
-        date: "2024-08-20T18:00:00.000Z",
       });
       if ("error" in createResult) {
         throw new Error(`Failed to create memory: ${createResult.error}`);
@@ -192,7 +879,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "",
-        date: "2024-01-01T00:00:00.000Z",
       });
       assertExists(emptyTitleResult);
       assertEquals("error" in emptyTitleResult, true);
@@ -200,28 +886,11 @@ Deno.test(
         console.log(`   ✓ Empty title rejected: ${emptyTitleResult.error}`);
       }
 
-      // Test: Create memory with invalid date should fail
-      console.log("2. Testing invalid date format...");
-      const invalidDateResult = await memoryConcept.createMemory({
-        creator: user1,
-        group: group1,
-        title: "Bad Date",
-        date: "not-a-real-date",
-      });
-      assertExists(invalidDateResult);
-      assertEquals("error" in invalidDateResult, true);
-      if ("error" in invalidDateResult) {
-        console.log(
-          `   ✓ Invalid date format rejected: ${invalidDateResult.error}`,
-        );
-      }
-
       // Create a valid memory first
       const createResult = await memoryConcept.createMemory({
         creator: user1,
         group: group1,
         title: "Valid Memory",
-        date: "2024-01-01T00:00:00.000Z",
       });
       if ("error" in createResult) {
         throw new Error(`Failed to create memory: ${createResult.error}`);
@@ -229,7 +898,7 @@ Deno.test(
       const memoryID = createResult.memory;
 
       // Test: Add contribution with empty description should fail
-      console.log("3. Testing empty description...");
+      console.log("2. Testing empty description...");
       const emptyDescResult = await memoryConcept.addContribution({
         memory: memoryID,
         user: user1,
@@ -244,7 +913,7 @@ Deno.test(
       }
 
       // Test: Edit title with empty title should fail
-      console.log("4. Testing edit title with empty title...");
+      console.log("3. Testing edit title with empty title...");
       const emptyEditTitleResult = await memoryConcept.editTitle({
         memory: memoryID,
         user: user1,
@@ -258,7 +927,7 @@ Deno.test(
       }
 
       // Test: Get non-existent memory should return empty array
-      console.log("5. Testing non-existent memory...");
+      console.log("4. Testing non-existent memory...");
       const invalidMemoryResult = await memoryConcept._getMemory({
         memoryID: "invalid:memory" as ID,
       });
@@ -266,7 +935,7 @@ Deno.test(
       console.log("   ✓ Non-existent memory returns empty array");
 
       // Test: Edit contribution with invalid index should fail
-      console.log("6. Testing edit with invalid contribution index...");
+      console.log("5. Testing edit with invalid contribution index...");
       const editInvalidIndexResult = await memoryConcept.editContribution({
         memory: memoryID,
         contributionIndex: 99, // Invalid index
@@ -301,7 +970,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Photo Album",
-        date: "2023-12-25T12:00:00.000Z",
       });
       if ("error" in createResult) {
         throw new Error(`Failed to create memory: ${createResult.error}`);
@@ -415,7 +1083,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Group Memory",
-        date: "2024-05-01T15:00:00.000Z",
       });
       if ("error" in createResult) {
         throw new Error(`Failed to create memory: ${createResult.error}`);
@@ -506,7 +1173,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Another Memory",
-        date: "2024-05-02T16:00:00.000Z",
       });
       if ("error" in createResult2) {
         throw new Error(`Failed to create memory: ${createResult2.error}`);
@@ -545,7 +1211,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Original Title",
-        date: "2024-03-10T09:00:00.000Z",
       });
       if ("error" in createResult) {
         throw new Error(`Failed to create memory: ${createResult.error}`);
@@ -639,7 +1304,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Photo Gallery",
-        date: "2024-02-14T20:00:00.000Z",
       });
       if ("error" in createResult) {
         throw new Error(`Failed to create memory: ${createResult.error}`);
@@ -770,7 +1434,6 @@ Deno.test(
         creator: user1,
         group: group1,
         title: "Multi-Contribution Memory",
-        date: "2024-06-01T11:00:00.000Z",
       });
       if ("error" in createResult) {
         throw new Error(`Failed to create memory: ${createResult.error}`);
@@ -935,86 +1598,4 @@ Deno.test(
     }
   },
 );
-
-Deno.test(
-  "Interesting Scenario 8: Editing memory date",
-  async () => {
-    const [db, client] = await testDb();
-    const memoryConcept = new MemoryEntriesConcept(db);
-
-    try {
-      console.log("\n=== Scenario 8: Date Management ===");
-
-      // 1. Create memory with an initial date
-      const initialDate = "2024-09-01T10:00:00.000Z";
-      const createResult = await memoryConcept.createMemory({
-        creator: user1,
-        group: group1,
-        title: "Date Test Memory",
-        date: initialDate,
-      });
-      if ("error" in createResult) {
-        throw new Error(`Failed to create memory: ${createResult.error}`);
-      }
-      const memoryID = createResult.memory;
-      console.log("1. Created memory with initial date");
-
-      // Verify initial date
-      let memoryResult = await memoryConcept._getMemory({ memoryID });
-      assertEquals(memoryResult.length, 1);
-      assertEquals(memoryResult[0].memory.date, initialDate);
-      console.log("   ✓ Initial date verified");
-
-      // 2. Edit the date successfully
-      const newDate = "2024-09-15T12:30:00.000Z";
-      console.log("2. Editing memory date...");
-      const editDateResult = await memoryConcept.editDate({
-        memory: memoryID,
-        user: user1,
-        newDate: newDate,
-      });
-      if ("error" in editDateResult) {
-        throw new Error(`Failed to edit date: ${editDateResult.error}`);
-      }
-      console.log("   ✓ Date edited successfully");
-
-      // 3. Verify the date was updated
-      memoryResult = await memoryConcept._getMemory({ memoryID });
-      assertEquals(memoryResult.length, 1);
-      assertEquals(memoryResult[0].memory.date, newDate);
-      console.log("   ✓ Updated date verified");
-
-      // 4. Attempt to edit with an invalid date string
-      console.log("4. Testing edit with invalid date format...");
-      const invalidDateResult = await memoryConcept.editDate({
-        memory: memoryID,
-        user: user1,
-        newDate: "invalid-date",
-      });
-      assertEquals("error" in invalidDateResult, true);
-      if ("error" in invalidDateResult) {
-        console.log(
-          `   ✓ Invalid date format rejected: ${invalidDateResult.error}`,
-        );
-      }
-
-      // 5. Attempt to edit a non-existent memory
-      console.log("5. Testing edit on non-existent memory...");
-      const nonExistentMemoryResult = await memoryConcept.editDate({
-        memory: "non:existent" as ID,
-        user: user1,
-        newDate: newDate,
-      });
-      assertEquals("error" in nonExistentMemoryResult, true);
-      if ("error" in nonExistentMemoryResult) {
-        console.log(
-          `   ✓ Edit on non-existent memory rejected: ${nonExistentMemoryResult.error}`,
-        );
-      }
-
-      console.log("✓ Scenario 8 passed");
-    } finally {
-      await client.close();
-    }
-  },
-);
+```

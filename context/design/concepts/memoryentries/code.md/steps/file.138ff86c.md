@@ -1,3 +1,12 @@
+---
+timestamp: 'Wed Dec 03 2025 11:27:10 GMT-0500 (Eastern Standard Time)'
+parent: '[[..\20251203_112710.a16a6cd4.md]]'
+content_id: 138ff86c6145c0304abc412d72563fdccd7152d1469fbc5be6054c4f7bbfdfde
+---
+
+# file: src/concepts/memoryentries/MemoryEntriesConcept.ts
+
+```typescript
 import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
@@ -47,7 +56,7 @@ export default class MemoryEntriesConcept {
   public readonly memories: Collection<MemoryDoc>;
 
   constructor(private readonly db: Db) {
-    this.memories = this.db.collection(PREFIX + "mems");
+    this.memories = this.db.collection(PREFIX + "memories");
   }
 
   /**
@@ -675,3 +684,4 @@ export default class MemoryEntriesConcept {
     }
   }
 }
+```

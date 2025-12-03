@@ -107,12 +107,13 @@ export const AuthorizeMemoryCreation: Sync = ({
   creator,
   group,
   title,
+  date,
   memory,
   members,
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/MemoryEntries/createMemory", creator, group, title },
+    { path: "/MemoryEntries/createMemory", creator, group, title, date },
     { request },
   ]),
   where: async (frames) => {
@@ -127,7 +128,7 @@ export const AuthorizeMemoryCreation: Sync = ({
     });
   },
   then: actions(
-    [MemoryEntries.createMemory, { creator: creator, group, title }, {
+    [MemoryEntries.createMemory, { creator: creator, group, title, date }, {
       memory,
     }],
   ),
@@ -151,12 +152,13 @@ export const AuthorizeMemoryCreationResponse: Sync = ({
   creator,
   group,
   title,
+  date,
   memory,
 }) => ({
   when: actions(
     [
       Requesting.request,
-      { path: "/MemoryEntries/createMemory", creator, group, title },
+      { path: "/MemoryEntries/createMemory", creator, group, title, date },
       { request },
     ],
     [MemoryEntries.createMemory, {}, { memory }],
