@@ -65,7 +65,5 @@ export const exclusions: Array<string> = [
 
   // User-related actions that use syncs
   "/api/UserAuthentication/changePhoto",
-
   // Image storage actions that use syncs
-  "/api/ImageStorage/confirmUpload",
 ];

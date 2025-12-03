@@ -50,54 +50,6 @@ export const UpdateProfilePhotoOnUpload: Sync = ({
 });
 
 /**
- * Sync: AddImageToMemoryAfterUploadConfirmation
- *
- * When an image upload is confirmed in the context of a specific memory,
- * add that image to the memory's contribution.
- *
- * Note: We use the path "/memory-images/confirm" to semantically represent
- * the confirmation step, rather than the "/upload-url" path which initiates
- * the process.
- */
-export const TriggerMemoryImageConfirm: Sync = ({
-  request,
-  user,
-  object,
-  memory,
-}) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/ImageStorage/confirmUpload", user, object, memory },
-    { request },
-  ]),
-  then: actions([ImageStorage.confirmUpload, { user, object }]),
-});
-
-export const AddImageToMemoryAfterUploadConfirmation: Sync = ({
-  request,
-  user,
-  object,
-  memory,
-  url,
-}) => ({
-  when: actions(
-    [
-      Requesting.request,
-      { path: "/ImageStorage/confirmUpload", user, object, memory },
-      { request },
-    ],
-    [ImageStorage.confirmUpload, { user, object }, { url }],
-  ),
-  then: actions(
-    [MemoryEntries.addImage, { memory, user, imageUrl: url }],
-    [
-      Requesting.respond,
-      { request, status: "success", imageUrl: url },
-    ],
-  ),
-});
-
-/**
  * Sync: AuthorizeMemoryCreation
  *
  * Only allow memory creation if the user is a member of the target group.
@@ -807,8 +759,8 @@ export const AuthorizeEditMemoryTitleResponseError: Sync = ({
 });
 
 /**
- * @sync AuthorizeEditMyContributionDescription
- * @description Authorizes a user to edit their own contribution description.
+ * @sync AuthorizeEditMyContribution
+ * @description Authorizes a user to edit their own contribution.
  * Verifies that the memory exists and the user owns the contribution at the specified index.
  *
  * @spec
@@ -819,12 +771,13 @@ export const AuthorizeEditMemoryTitleResponseError: Sync = ({
  * then
  *   MemoryEntries.editContribution(memory, contributionIndex, user, newDescription)
  */
-export const AuthorizeEditMyContributionDescription: Sync = ({
+export const AuthorizeEditMyContribution: Sync = ({
   request,
   user,
   memory,
   contributionIndex,
   newDescription,
+  newImageUrls,
   memoryDoc,
 }) => ({
   when: actions([
@@ -835,6 +788,7 @@ export const AuthorizeEditMyContributionDescription: Sync = ({
       memory,
       contributionIndex,
       newDescription,
+      newImageUrls,
     },
     { request },
   ]),
@@ -872,14 +826,15 @@ export const AuthorizeEditMyContributionDescription: Sync = ({
       contributionIndex,
       user,
       newDescription,
+      newImageUrls,
     }],
   ),
 });
 
 /**
- * Responds to the client upon successful contribution description edit.
+ * Responds to the client upon successful contribution edit.
  */
-export const AuthorizeEditMyContributionDescriptionResponse: Sync = ({
+export const AuthorizeEditMyContributionResponse: Sync = ({
   request,
 }) => ({
   when: actions(
@@ -895,9 +850,9 @@ export const AuthorizeEditMyContributionDescriptionResponse: Sync = ({
 });
 
 /**
- * Responds to the client with an error if contribution description edit fails.
+ * Responds to the client with an error if contribution edit fails.
  */
-export const AuthorizeEditMyContributionDescriptionResponseError: Sync = ({
+export const AuthorizeEditMyContributionResponseError: Sync = ({
   request,
   error,
 }) => ({
