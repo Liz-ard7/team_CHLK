@@ -886,10 +886,16 @@ export const AuthorizeDeleteMyContribution: Sync = ({
   user,
   memory,
   memoryDoc,
+  contributionIndex,
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/contributions/delete", user, memory },
+    {
+      path: "/MemoryEntries/deleteContribution",
+      user,
+      memory,
+      contributionIndex,
+    },
     { request },
   ]),
   where: async (frames) => {
@@ -917,7 +923,7 @@ export const AuthorizeDeleteMyContribution: Sync = ({
     });
   },
   then: actions(
-    [MemoryEntries.deleteContribution, { memory, user }],
+    [MemoryEntries.deleteContribution, { memory, user, contributionIndex }],
     [Requesting.respond, { request, status: "success" }],
   ),
 });
