@@ -229,4 +229,14 @@ export default class UserAuthenticationConcept {
 
     return {};
   }
+
+  /**
+   * _getAllUsernames (): Array<{ username: string }>
+   *
+   * Effects: returns a list of all usernames in the system
+   */
+  async _getAllUsernames(): Promise<Array<{ username: string }>> {
+    const allUsers = await this.users.find({}).toArray();
+    return allUsers.map((user) => ({ username: user.username }));
+  }
 }

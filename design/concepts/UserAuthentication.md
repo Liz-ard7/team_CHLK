@@ -40,3 +40,7 @@ after a user registers with a username and a password, they can authenticate wit
 #### _userExists (user: User): (exists: Boolean)
 * Requires: user ID to be provided
 * Effects: Returns whether a user with the given ID exists in the set of Users
+
+#### _getAllUsernames (): (usernames: set<String>)
+* Requires: Nothing
+* Effects; Returns a list of all usernames
