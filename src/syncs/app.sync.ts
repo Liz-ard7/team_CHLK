@@ -375,7 +375,7 @@ export const DeleteEmptyGroup: Sync = (
  *     MemoryEntries.deleteMemory(memory, creator)
  */
 export const CascadeGroupDeletionToMemories: Sync = (
-  { group, memory, creator, memoryList },
+  { group, memory, creator, memoryList, memoryObject },
 ) => ({
   when: actions(
     [Groups.deleteGroup, { group }, {}],
@@ -406,13 +406,24 @@ export const CascadeGroupDeletionToMemories: Sync = (
       return new Frames();
     }
 
-    // 3. Create a new Frames instance and query for the creator of each individual memory.
+    // 3. Create a new Frames instance and query for the full memory object for each memory ID.
     let perMemoryFrames = new Frames(...expandedFrames);
+    // The _getMemory query returns `{ memory: { creator: '...' } }`. We bind this whole object to `memoryObject`.
     perMemoryFrames = await perMemoryFrames.query(MemoryEntries._getMemory, {
       memoryID: memory,
-    }, { creator });
+    }, { memory: memoryObject });
 
-    return perMemoryFrames;
+    // 4. Map over the resulting frames to extract the `creator` from the nested `memoryObject`.
+    const finalFrames = perMemoryFrames.map(($) => {
+      // Assert the type of the memory object we just fetched.
+      const memObj = $[memoryObject] as unknown as { creator: ID };
+      return {
+        ...$, // Keep all existing bindings (group, memory, memoryObject)
+        [creator]: memObj.creator, // Add the new `creator` binding
+      };
+    });
+
+    return new Frames(...finalFrames);
   },
   then: actions(
     // The `then` clause will now fire once for each frame produced by the `where` clause.
