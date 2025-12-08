@@ -26,23 +26,7 @@ Fun Fact: I once got pranked by my brother with cupcakes where the frosting was 
 
 ### Hao Lei Zhang
 
-Course Number
-
-Year
-
-Link to portfolio
-
-Description
-
 ### Calvin Farrow
-
-Course Number
-
-Year
-
-Link to portfolio
-
-Description
 
 ## Functional Design
 * [Problem Framing](functional_design/ProblemFraming.md)
@@ -52,3 +36,11 @@ Description
 * [Visual Design Study](functional_design/VisualStudy.md)
 * [Development Plan](functional_design/DevelopmentPlan.md)
   * [Development Plan Update](DevelopmentPlanUpdate.md)
+
+## Project Report
+* [Mentor Meeting Records](mentor_meetings)
+* [Design Summary](DesignSummary.md)
+* [Reflection](Reflection.md)
+
+## User Testing
+[User Testing](UserTesting.md)
