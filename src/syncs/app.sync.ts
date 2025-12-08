@@ -992,7 +992,7 @@ export const AuthorizeDeleteMyMemory: Sync = ({
 }) => ({
   when: actions([
     Requesting.request,
-    { path: "/memories/delete", user, memory },
+    { path: "/MemoryEntries/deleteMemory", user, memory },
     { request },
   ]),
   where: async (frames) => {
