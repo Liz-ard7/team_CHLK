@@ -2,6 +2,10 @@
 
 ## Calvin
 
+I think that this project went pretty well. I don't have a lot of experience with group projects like this, so most of it was a fairly new experience for me. I think I was a bit worried early on when we were trying to iron out exactly what the app should do because it felt like we weren't moving very quickly towards being on the same page. After a few meetings though I felt like we had gotten to a point where we all had a good idea of what we wanted the app to be. I think the time spent here was productive as well, because I think we ended up with an idea that seemed original and doable within the time limit. Even though I'm happy with what we came up with, I do wish we could have had a bit more time for the planning phase of the project. Our team had some difficulty finding times when we were all available to meet and work out our plan for the app, since we all have different schedules. This was less of a problem during the implementation portion because we could do more work independently on our own time, but during the planning phase it was a challenge.
+
+Other than that, I feel like the rest of the project went pretty smoothly. We were able to split the work so that each of us could finish tasks independently, and we all pretty much managed to stick to the plan we had laid out at the start. I enjoyed working on my parts of the group project and enjoyed working with my group, and I'm happy with the product we produced.
+
 ## Haolei
 
 We worked on a really fun project that aims to solve a real problem. If this project can continue to grow and improve, it would be useful not only for couples like my girlfriend and me, who are sometimes long-distance, but also for friends who don’t get to see each other often. We would love to create a place where we can share our moments quickly and stay updated on what’s happening in each other’s lives. It’s not like social media where there is social pressure—this is a private space just for us. The app is simple to use but provides meaningful functionality in everyday life.
